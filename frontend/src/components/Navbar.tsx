@@ -18,6 +18,7 @@ export default function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
   const [scrolled, setScrolled] = useState(false);
+  const [logoClicks, setLogoClicks] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -62,6 +63,17 @@ export default function Navbar() {
   const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin';
   const isLeader = profile?.role === 'team_leader' || isAdmin;
 
+  const handleLogoClick = (e: React.MouseEvent) => {
+    if (isAdmin) {
+      const newClicks = logoClicks + 1;
+      setLogoClicks(newClicks);
+      if (newClicks >= 4) {
+        router.push('/admin');
+        setLogoClicks(0);
+      }
+    }
+  };
+
   const navLinks = [
     { href: '/hackathons', label: 'Hackathons', icon: Trophy },
     { href: '/teams', label: 'Teams', icon: Users },
@@ -84,12 +96,15 @@ export default function Navbar() {
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}
-            <Link href="/" className="flex items-center gap-2 group shrink-0">
+            <button 
+              onClick={handleLogoClick}
+              className="flex items-center gap-2 group shrink-0"
+            >
               <div className="w-9 h-9 rounded-xl gradient-bg flex items-center justify-center group-hover:scale-110 transition-transform">
                 <Zap className="w-5 h-5 text-white" />
               </div>
               <span className="text-xl font-bold gradient-text hidden sm:block">TeamUp</span>
-            </Link>
+            </button>
           </div>
 
           {/* Desktop Nav */}
@@ -165,12 +180,6 @@ export default function Navbar() {
                           className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[#94a3b8] hover:text-white hover:bg-white/5 transition-all">
                           <LayoutDashboard className="w-4 h-4" /> Dashboard
                         </Link>
-                        {isAdmin && (
-                          <Link href="/admin" onClick={() => setDropdownOpen(false)}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-amber-400 hover:text-amber-300 hover:bg-amber-400/5 transition-all">
-                            <Shield className="w-4 h-4" /> Admin Panel
-                          </Link>
-                        )}
                         <Link href="/profile" onClick={() => setDropdownOpen(false)}
                           className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[#94a3b8] hover:text-white hover:bg-white/5 transition-all">
                           <Settings className="w-4 h-4" /> Profile
@@ -223,12 +232,6 @@ export default function Navbar() {
               <Link href="/teams/create" onClick={() => setMenuOpen(false)}
                 className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[#22d3ee] hover:bg-[#06b6d4]/5">
                 <Users className="w-5 h-5" /> Create Team
-              </Link>
-            )}
-            {isAdmin && (
-              <Link href="/admin" onClick={() => setMenuOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-amber-400 hover:bg-amber-400/5">
-                <Shield className="w-5 h-5" /> Admin Panel
               </Link>
             )}
             {!user && (

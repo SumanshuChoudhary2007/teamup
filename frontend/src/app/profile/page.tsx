@@ -22,6 +22,9 @@ export default function ProfilePage() {
   const [linkedinUrl, setLinkedinUrl] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [adminReason, setAdminReason] = useState('');
+  const [requesting, setRequesting] = useState(false);
+  const [requestSent, setRequestSent] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login');
@@ -58,6 +61,20 @@ export default function ProfilePage() {
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
+  };
+
+  const handleAdminRequest = async () => {
+    if (!user || !adminReason.trim()) return;
+    setRequesting(true);
+    const { error } = await supabase
+      .from('admin_requests')
+      .insert({ user_id: user.id, reason: adminReason.trim(), status: 'pending' });
+    
+    if (!error) {
+      setRequestSent(true);
+      setAdminReason('');
+    }
+    setRequesting(false);
   };
 
   if (authLoading || !user) return <div className="min-h-screen pt-20 flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" /></div>;
@@ -181,6 +198,40 @@ export default function ProfilePage() {
             {saved && <span className="text-emerald-400 text-sm font-medium animate-fade-in">✓ Profile saved!</span>}
           </div>
         </div>
+
+        {/* Admin Request Section */}
+        {profile?.role === 'user' && (
+          <div className="mt-8 glass rounded-2xl p-6 sm:p-8 border border-amber-500/20">
+            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+              <Shield className="w-5 h-5 text-amber-500" /> Request Admin Access
+            </h2>
+            <p className="text-sm text-[#94a3b8] mb-6">
+              Apply to become an administrator. Your request will be reviewed by the Super Admin.
+            </p>
+            
+            {requestSent ? (
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm font-medium">
+                Your request has been submitted and is currently pending approval.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <textarea
+                  value={adminReason}
+                  onChange={e => setAdminReason(e.target.value)}
+                  className="input-field min-h-[80px]"
+                  placeholder="Why do you need admin access?"
+                />
+                <button 
+                  onClick={handleAdminRequest}
+                  disabled={requesting || !adminReason.trim()}
+                  className="btn-secondary w-full py-3 text-amber-400 hover:text-amber-300 border-amber-500/30 hover:border-amber-500/50"
+                >
+                  {requesting ? 'Submitting...' : 'Submit Request'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

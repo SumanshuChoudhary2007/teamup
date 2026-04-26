@@ -204,6 +204,71 @@ app.patch('/api/applications/:id', authenticate, async (req, res) => {
   res.json(data);
 });
 
+// ==========================================
+// ADMIN REQUESTS & APPROVALS
+// ==========================================
+app.post('/api/admin/request', authenticate, async (req, res) => {
+  const profile = (req as any).profile;
+  const { reason } = req.body;
+
+  const { data, error } = await supabase
+    .from('admin_requests')
+    .insert([{ user_id: profile.id, reason, status: 'pending' }])
+    .select()
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.status(201).json(data);
+});
+
+app.get('/api/admin/requests', authenticate, async (req, res) => {
+  const profile = (req as any).profile;
+  if (profile.role !== 'admin' && profile.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+
+  const { data, error } = await supabase
+    .from('admin_requests')
+    .select('*, user:profiles!admin_requests_user_id_fkey(*)')
+    .order('created_at', { ascending: false });
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.patch('/api/admin/requests/:id', authenticate, async (req, res) => {
+  const profile = (req as any).profile;
+  if (profile.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Only Super Admin can approve new admins' });
+  }
+
+  const { status } = req.body; // 'approved' or 'rejected'
+  const requestId = req.params.id;
+
+  const { data: request } = await supabase.from('admin_requests').select('*').eq('id', requestId).single();
+  if (!request) return res.status(404).json({ error: 'Request not found' });
+
+  // Update request status
+  const { error: reqError } = await supabase
+    .from('admin_requests')
+    .update({ status })
+    .eq('id', requestId);
+
+  if (reqError) return res.status(500).json({ error: reqError.message });
+
+  // If approved, update user role to 'admin' (NEVER super_admin)
+  if (status === 'approved') {
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ role: 'admin' })
+      .eq('id', request.user_id);
+    
+    if (profileError) return res.status(500).json({ error: profileError.message });
+  }
+
+  res.json({ message: `Request ${status} successfully` });
+});
+
 app.listen(port, () => {
   console.log(`Backend API running on port ${port}`);
 });
