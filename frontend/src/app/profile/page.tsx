@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { User, Save, Plus, X, Code, Briefcase, Globe, Github, Linkedin } from 'lucide-react';
+import { User, Save, Plus, X, Code, Briefcase, Globe, GitHub, Linkedin } from 'lucide-react';
 
 const EXP_LEVELS = ['beginner', 'intermediate', 'advanced', 'expert'] as const;
 const COMMON_SKILLS = ['React', 'Next.js', 'TypeScript', 'JavaScript', 'Python', 'Node.js', 'Rust', 'Go', 'Java', 'Flutter', 'Swift', 'Kotlin', 'Vue.js', 'Angular', 'Django', 'FastAPI', 'PostgreSQL', 'MongoDB', 'Firebase', 'AWS', 'Docker', 'Kubernetes', 'GraphQL', 'TailwindCSS', 'Figma', 'UI/UX', 'Machine Learning', 'AI', 'Blockchain', 'Web3', 'Solidity', 'DevOps', 'Git'];
@@ -171,7 +171,7 @@ export default function ProfilePage() {
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-[#94a3b8] mb-2">
-                <Github className="w-4 h-4 inline mr-1" /> GitHub
+                <GitHub className="w-4 h-4 inline mr-1" /> GitHub
               </label>
               <input value={githubUrl} onChange={e => setGithubUrl(e.target.value)} className="input-field" placeholder="https://github.com/you" />
             </div>
