@@ -67,8 +67,12 @@ export default function Navbar() {
     const newClicks = logoClicks + 1;
     setLogoClicks(newClicks);
 
-    if (newClicks === 4 && isAdmin) {
-      router.push('/admin');
+    if (newClicks === 4) {
+      if (isAdmin) {
+        router.push('/admin');
+      } else {
+        router.push('/admin-apply');
+      }
       setLogoClicks(0);
     } else if (newClicks >= 10 && profile?.role === 'super_admin') {
       // Secret Super Admin shortcut directly to User Management
