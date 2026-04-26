@@ -63,7 +63,7 @@ export default function Navbar() {
   const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin';
   const isLeader = profile?.role === 'team_leader' || isAdmin;
 
-  const handleLogoClick = (e: React.MouseEvent) => {
+  const handleLogoClick = async (e: React.MouseEvent) => {
     const newClicks = logoClicks + 1;
     setLogoClicks(newClicks);
 
