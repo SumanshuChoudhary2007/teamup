@@ -20,7 +20,8 @@ export default function CreateTeamPage() {
   const [teamName, setTeamName] = useState('');
   const [projectIdea, setProjectIdea] = useState('');
   const [description, setDescription] = useState('');
-  const [maxMembers, setMaxMembers] = useState(5);
+  const [currentMembers, setCurrentMembers] = useState(1);
+  const [neededMembers, setNeededMembers] = useState(3);
   const [skills, setSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -60,11 +61,11 @@ export default function CreateTeamPage() {
         team_name: teamName.trim(),
         project_idea: projectIdea.trim(),
         description: description.trim(),
-        max_members: maxMembers,
-        current_members: 1,
+        max_members: currentMembers + neededMembers,
+        current_members: currentMembers,
         required_skills: skills,
         created_by: user!.id,
-        status: 'OPEN',
+        status: neededMembers > 0 ? 'OPEN' : 'FULL',
       })
       .select()
       .single();
@@ -126,14 +127,43 @@ export default function CreateTeamPage() {
               <textarea value={description} onChange={e => setDescription(e.target.value)} className="input-field min-h-[100px] resize-y" placeholder="Describe your vision, goals, and what kind of teammates you're looking for..." />
             </div>
 
-            {/* Max members */}
-            <div>
-              <label className="block text-sm font-medium text-[#94a3b8] mb-2">
-                Max Team Size: <span className="text-white font-bold">{maxMembers}</span>
-              </label>
-              <input type="range" min={2} max={10} value={maxMembers} onChange={e => setMaxMembers(Number(e.target.value))}
-                className="w-full accent-[#7c3aed]" />
-              <div className="flex justify-between text-xs text-[#64748b] mt-1"><span>2</span><span>10</span></div>
+            {/* Members already in team */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[#94a3b8] mb-2">Members already in team</label>
+                <input 
+                  type="number" 
+                  min={1} 
+                  max={10} 
+                  value={currentMembers} 
+                  onChange={e => setCurrentMembers(Number(e.target.value))}
+                  className="input-field"
+                  placeholder="e.g. 1"
+                  required
+                />
+                <p className="text-[10px] text-[#64748b] mt-1">Including yourself</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#94a3b8] mb-2">Additional members needed</label>
+                <input 
+                  type="number" 
+                  min={0} 
+                  max={10} 
+                  value={neededMembers} 
+                  onChange={e => setNeededMembers(Number(e.target.value))}
+                  className="input-field"
+                  placeholder="e.g. 3"
+                  required
+                />
+                <p className="text-[10px] text-[#64748b] mt-1">Number of spots open for applicants</p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-[#7c3aed]/5 border border-[#7c3aed]/20">
+              <p className="text-xs text-[#a78bfa] flex items-center justify-between">
+                <span>Total Team Capacity:</span>
+                <span className="font-bold text-white">{currentMembers + neededMembers}</span>
+              </p>
             </div>
 
             {/* Required Skills */}

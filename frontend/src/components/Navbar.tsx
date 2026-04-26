@@ -2,15 +2,18 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import {
   Zap, Menu, X, Bell, User, LogOut, ChevronDown,
-  LayoutDashboard, Trophy, Users, Shield, Settings
+  LayoutDashboard, Trophy, Users, Shield, Settings, ArrowLeft
 } from 'lucide-react';
 
 export default function Navbar() {
   const { user, profile, signOut, loading } = useAuth();
+  const pathname = usePathname();
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
@@ -70,13 +73,24 @@ export default function Navbar() {
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-9 h-9 rounded-xl gradient-bg flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl font-bold gradient-text hidden sm:block">TeamUp</span>
-          </Link>
+          {/* Back Button & Logo */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            {pathname !== '/' && (
+              <button 
+                onClick={() => router.back()} 
+                className="p-1.5 sm:p-2 rounded-xl hover:bg-white/5 text-[#94a3b8] hover:text-white transition-all flex items-center gap-1 shrink-0"
+                title="Go Back"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+            )}
+            <Link href="/" className="flex items-center gap-2 group shrink-0">
+              <div className="w-9 h-9 rounded-xl gradient-bg flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Zap className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-bold gradient-text hidden sm:block">TeamUp</span>
+            </Link>
+          </div>
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-1">
@@ -90,13 +104,13 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            {isAdmin && (
+            {isLeader && (
               <Link
-                href="/admin"
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-amber-400 hover:text-amber-300 hover:bg-amber-400/5 transition-all"
+                href="/teams/create"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-[#22d3ee] hover:text-cyan-300 hover:bg-[#06b6d4]/5 transition-all"
               >
-                <Shield className="w-4 h-4" />
-                Admin
+                <Users className="w-4 h-4" />
+                Create Team
               </Link>
             )}
           </div>
@@ -151,6 +165,12 @@ export default function Navbar() {
                           className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[#94a3b8] hover:text-white hover:bg-white/5 transition-all">
                           <LayoutDashboard className="w-4 h-4" /> Dashboard
                         </Link>
+                        {isAdmin && (
+                          <Link href="/admin" onClick={() => setDropdownOpen(false)}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-amber-400 hover:text-amber-300 hover:bg-amber-400/5 transition-all">
+                            <Shield className="w-4 h-4" /> Admin Panel
+                          </Link>
+                        )}
                         <Link href="/profile" onClick={() => setDropdownOpen(false)}
                           className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[#94a3b8] hover:text-white hover:bg-white/5 transition-all">
                           <Settings className="w-4 h-4" /> Profile
@@ -199,16 +219,16 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            {isAdmin && (
-              <Link href="/admin" onClick={() => setMenuOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-amber-400 hover:bg-amber-400/5">
-                <Shield className="w-5 h-5" /> Admin
-              </Link>
-            )}
             {isLeader && (
               <Link href="/teams/create" onClick={() => setMenuOpen(false)}
                 className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[#22d3ee] hover:bg-[#06b6d4]/5">
                 <Users className="w-5 h-5" /> Create Team
+              </Link>
+            )}
+            {isAdmin && (
+              <Link href="/admin" onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-amber-400 hover:bg-amber-400/5">
+                <Shield className="w-5 h-5" /> Admin Panel
               </Link>
             )}
             {!user && (
