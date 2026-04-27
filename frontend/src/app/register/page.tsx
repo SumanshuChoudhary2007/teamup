@@ -38,6 +38,20 @@ function RegisterForm() {
     });
 
     if (err) {
+      if (err.message.includes('already registered')) {
+        // If user already exists and it's an admin path, check if they have a pending request
+        if (isAdminType) {
+          const { data: existingUser } = await supabase.from('profiles').select('id, role').eq('email', email).single();
+          if (existingUser) {
+             const { data: existingReq } = await supabase.from('admin_requests').select('status').eq('user_id', existingUser.id).eq('status', 'pending').single();
+             if (existingReq) {
+               setSubmitted(true);
+               setLoading(false);
+               return;
+             }
+          }
+        }
+      }
       setError(err.message);
       setLoading(false);
     } else if (data.user) {
