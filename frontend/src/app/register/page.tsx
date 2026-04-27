@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { UserPlus, Mail, Lock, User, ArrowRight, Zap, Eye, EyeOff, Shield, Clock, CheckCircle } from 'lucide-react';
 import { Suspense, useState, useEffect } from 'react';
 
+function RegisterForm() {
   const { signInWithOAuth } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
