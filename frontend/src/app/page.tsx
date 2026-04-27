@@ -43,11 +43,12 @@ export default function LandingPage() {
   }, []);
 
   const stats = [
-    { label: 'Active Hackers', value: counts.hackers > 1000 ? `${(counts.hackers/1000).toFixed(1)}K+` : counts.hackers.toString(), icon: Users },
-    { label: 'Hackathons', value: counts.hackathons.toString(), icon: Trophy },
-    { label: 'Teams Formed', value: counts.teams.toString(), icon: Zap },
-    { label: 'Tech Communities', value: '10+', icon: Globe },
+    { label: 'Active Hackers', value: counts.hackers.toLocaleString(), icon: Users },
+    { label: 'Verified Hackathons', value: counts.hackathons.toLocaleString(), icon: Trophy },
+    { label: 'Teams Formed', value: counts.teams.toLocaleString(), icon: Zap },
   ];
+
+  const hasData = counts.hackers > 0 || counts.hackathons > 0 || counts.teams > 0;
 
   const features = [
     {
