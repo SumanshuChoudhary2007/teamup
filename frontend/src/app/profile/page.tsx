@@ -8,7 +8,7 @@ import { User, Mail, Globe, Save, Zap, ArrowLeft, Loader2, CheckCircle2 } from '
 import Link from 'next/link';
 
 export default function ProfilePage() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, loading: authLoading } = useAuth();
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
@@ -76,7 +76,9 @@ export default function ProfilePage() {
     try {
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({
+        .upsert({
+          id: user.id,
+          email: user.email!, // Email is required for new rows
           name: formData.name,
           bio: formData.bio,
           experience: formData.experience,
@@ -86,8 +88,7 @@ export default function ProfilePage() {
           portfolio_link: formData.portfolio_link,
           skills: skills,
           updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
+        });
 
       if (updateError) throw updateError;
 
@@ -107,13 +108,15 @@ export default function ProfilePage() {
     }
   };
 
-  if (!user || !profile) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-[#7c3aed] animate-spin" />
       </div>
     );
   }
+
+  if (!user) return null;
 
   return (
     <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto relative">
