@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { User, Save, Plus, X, Code, Briefcase, Globe } from 'lucide-react';
+import { User, Save, Plus, X, Code, Briefcase, Globe, Shield } from 'lucide-react';
 
 const EXP_LEVELS = ['beginner', 'intermediate', 'advanced', 'expert'] as const;
 const COMMON_SKILLS = ['React', 'Next.js', 'TypeScript', 'JavaScript', 'Python', 'Node.js', 'Rust', 'Go', 'Java', 'Flutter', 'Swift', 'Kotlin', 'Vue.js', 'Angular', 'Django', 'FastAPI', 'PostgreSQL', 'MongoDB', 'Firebase', 'AWS', 'Docker', 'Kubernetes', 'GraphQL', 'TailwindCSS', 'Figma', 'UI/UX', 'Machine Learning', 'AI', 'Blockchain', 'Web3', 'Solidity', 'DevOps', 'Git'];

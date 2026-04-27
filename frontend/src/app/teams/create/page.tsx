@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { supabase, type Hackathon } from '@/lib/supabase';
@@ -9,7 +9,7 @@ import Link from 'next/link';
 
 const COMMON_SKILLS = ['React','Next.js','TypeScript','JavaScript','Python','Node.js','Rust','Go','Java','Flutter','Swift','Kotlin','Vue.js','Django','FastAPI','PostgreSQL','MongoDB','Firebase','AWS','Docker','GraphQL','TailwindCSS','Figma','UI/UX','Machine Learning','AI','Blockchain','Web3','Solidity','DevOps'];
 
-export default function CreateTeamPage() {
+function CreateTeamForm() {
   const { user, profile, loading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -197,5 +197,13 @@ export default function CreateTeamPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CreateTeamPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen pt-20 flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" /></div>}>
+      <CreateTeamForm />
+    </Suspense>
   );
 }
