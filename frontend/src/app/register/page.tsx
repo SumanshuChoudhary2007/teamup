@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { UserPlus, Mail, Lock, User, ArrowRight, Zap, Eye, EyeOff, Shield, Clock } from 'lucide-react';
-import { Suspense, useState } from 'react';
+import { UserPlus, Mail, Lock, User, ArrowRight, Zap, Eye, EyeOff, Shield, Clock, CheckCircle } from 'lucide-react';
+import { Suspense, useState, useEffect } from 'react';
 
 function RegisterForm() {
   const router = useRouter();
