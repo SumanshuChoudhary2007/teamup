@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { UserPlus, Mail, Lock, User, ArrowRight, Zap, Eye, EyeOff, Shield } from 'lucide-react';
