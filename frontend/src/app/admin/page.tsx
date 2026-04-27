@@ -43,7 +43,7 @@ export default function AdminPage() {
     supabase.from('hackathons').select('*').order('date', { ascending: true }).then(({ data }) => setHackathons((data || []) as Hackathon[]));
     supabase.from('teams').select('*, hackathon:hackathons(title)').order('created_at', { ascending: false }).then(({ data }) => setTeams((data || []) as Team[]));
     supabase.from('profiles').select('*').order('created_at', { ascending: false }).then(({ data }) => setUsers((data || []) as Profile[]));
-    supabase.from('admin_requests').select('*, user:profiles!admin_requests_user_id_fkey(*)').order('created_at', { ascending: false }).then(({ data }) => setAdminRequests(data || []));
+    supabase.from('admin_requests').select('*, user:profiles(*)').order('created_at', { ascending: false }).then(({ data }) => setAdminRequests(data || []));
   }, [isAdmin]);
 
   // ... (handleCreateHackathon, deleteHackathon, updateRole, handleApproveRequest remain the same)
