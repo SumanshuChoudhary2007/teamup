@@ -54,13 +54,13 @@ export default function HackathonsPage() {
 
         {/* Search + Filters */}
         <div className="flex flex-col sm:flex-row gap-3 mb-8">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748b]" />
+          <div className="input-with-icon flex-1">
+            <Search className="input-icon input-icon-left w-5 h-5" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="input-field pl-11"
+              className="input-field has-icon-left"
               placeholder="Search hackathons by name, tag..."
             />
           </div>

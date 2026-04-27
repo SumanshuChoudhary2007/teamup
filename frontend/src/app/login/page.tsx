@@ -74,13 +74,13 @@ function LoginForm() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-[#94a3b8] mb-2">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748b]" />
+              <div className="input-with-icon">
+                <Mail className="input-icon input-icon-left w-5 h-5" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="input-field pl-11"
+                  className="input-field has-icon-left"
                   placeholder="admin@teamup.com"
                   required
                 />
@@ -89,20 +89,20 @@ function LoginForm() {
 
             <div>
               <label className="block text-sm font-medium text-[#94a3b8] mb-2">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748b]" />
+              <div className="input-with-icon">
+                <Lock className="input-icon input-icon-left w-5 h-5" />
                 <input
                   type={showPass ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input-field pl-11 pr-11"
+                  className="input-field has-icon-left has-icon-right"
                   placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748b] hover:text-white"
+                  className="input-icon input-icon-right text-[#64748b] hover:text-white"
                 >
                   {showPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>

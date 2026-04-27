@@ -200,6 +200,48 @@ body {
   color: #64748b;
 }
 
+/* Icon-input helpers */
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-with-icon .input-icon {
+  position: absolute;
+  color: #64748b;
+  transition: color 0.3s ease;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.input-with-icon .input-icon-left {
+  left: 1rem;
+}
+
+.input-with-icon .input-icon-right {
+  right: 1rem;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.input-with-icon input {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.input-with-icon input.has-icon-left {
+  padding-left: 2.75rem;
+}
+
+.input-with-icon input.has-icon-right {
+  padding-right: 2.75rem;
+}
+
+.input-with-icon:focus-within .input-icon {
+  color: #7c3aed;
+}
+
 /* Badge styles */
 .badge {
   display: inline-flex;
