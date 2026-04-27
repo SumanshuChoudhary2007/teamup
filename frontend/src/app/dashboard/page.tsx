@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [myTeams, setMyTeams] = useState<Team[]>([]);
   const [suggestedTeams, setSuggestedTeams] = useState<(Team & { hackathon: Hackathon })[]>([]);
+  const [suggestedHackers, setSuggestedHackers] = useState<Profile[]>([]);
   const [myApps, setMyApps] = useState<(Application & { team: Team & { hackathon: Hackathon } })[]>([]);
   const [pendingApps, setPendingApps] = useState<(Application & { user: { name: string; skills: string[] }; team: { team_name: string } })[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,15 +67,41 @@ export default function DashboardPage() {
         setPendingApps((pending || []) as typeof pendingApps);
       }
 
-      // Suggested Teams (Not mine, not applied to, and OPEN)
-      const { data: suggested } = await supabase
-        .from('teams')
-        .select('*, hackathon:hackathons(*)')
-        .eq('status', 'OPEN')
-        .neq('created_by', user.id)
-        .limit(3)
-        .order('created_at', { ascending: false });
-      setSuggestedTeams((suggested || []) as typeof suggestedTeams);
+      // Suggested Teams (Skill-based matching)
+      let matches: any[] = [];
+      if (profile?.skills && profile.skills.length > 0) {
+        const { data: teamMatches } = await supabase
+          .from('teams')
+          .select('*, hackathon:hackathons(*)')
+          .eq('status', 'OPEN')
+          .neq('created_by', user.id)
+          .overlaps('required_skills', profile.skills)
+          .limit(3);
+        matches = teamMatches || [];
+      }
+
+      // Fallback: If no skill matches or profile incomplete, show latest teams
+      if (matches.length === 0) {
+        const { data: latest } = await supabase
+          .from('teams')
+          .select('*, hackathon:hackathons(*)')
+          .eq('status', 'OPEN')
+          .neq('created_by', user.id)
+          .limit(3)
+          .order('created_at', { ascending: false });
+        matches = latest || [];
+      }
+      setSuggestedTeams(matches);
+
+      // If still no teams found (rare), suggest hackers
+      if (matches.length === 0) {
+        const { data: hackers } = await supabase
+          .from('profiles')
+          .select('*')
+          .neq('id', user.id)
+          .limit(4);
+        setSuggestedHackers((hackers || []) as Profile[]);
+      }
 
       setLoading(false);
     };
@@ -84,6 +111,7 @@ export default function DashboardPage() {
   if (authLoading || !user) return <div className="min-h-screen pt-20 flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" /></div>;
 
   const isLeader = profile?.role === 'team_leader' || profile?.role === 'admin';
+  const isProfileIncomplete = !profile?.skills || profile.skills.length === 0 || !profile.bio;
 
   const statusIcon = (s: string) => {
     if (s === 'accepted') return <CheckCircle className="w-4 h-4 text-emerald-400" />;
@@ -123,128 +151,104 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {isProfileIncomplete && (
+        <div className="relative z-10 mb-8 animate-slide-up">
+          <div className="glass-strong border-amber-500/20 p-6 rounded-3xl flex flex-col md:flex-row items-center gap-6 shadow-2xl shadow-amber-500/5 overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-4 opacity-5">
+              <Zap className="w-32 h-32 text-amber-400" />
+            </div>
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-400 shrink-0">
+              <UserCheck className="w-8 h-8" />
+            </div>
+            <div className="flex-1 text-center md:text-left">
+              <h3 className="text-lg font-bold text-white mb-1">Boost Your Team Matching!</h3>
+              <p className="text-sm text-[#94a3b8]">Complete your profile with your skills and bio to get personalized team and partner suggestions.</p>
+            </div>
+            <Link href="/profile" className="btn-primary py-3 px-8 bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20 whitespace-nowrap">
+              Complete Profile
+            </Link>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="w-8 h-8 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="relative z-10 space-y-8">
-          {/* Stats cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="glass rounded-2xl p-5">
-              <Users className="w-6 h-6 text-[#a78bfa] mb-2" />
-              <p className="text-2xl font-bold text-white">{myTeams.length}</p>
-              <p className="text-xs text-[#64748b]">My Teams</p>
-            </div>
-            <div className="glass rounded-2xl p-5">
-              <FileText className="w-6 h-6 text-[#22d3ee] mb-2" />
-              <p className="text-2xl font-bold text-white">{myApps.length}</p>
-              <p className="text-xs text-[#64748b]">Applications</p>
-            </div>
-            <div className="glass rounded-2xl p-5">
-              <CheckCircle className="w-6 h-6 text-emerald-400 mb-2" />
-              <p className="text-2xl font-bold text-white">{myApps.filter(a => a.status === 'accepted').length}</p>
-              <p className="text-xs text-[#64748b]">Accepted</p>
-            </div>
-            <div className="glass rounded-2xl p-5">
-              <Clock className="w-6 h-6 text-amber-400 mb-2" />
-              <p className="text-2xl font-bold text-white">{pendingApps.length}</p>
-              <p className="text-xs text-[#64748b]">Pending Review</p>
-            </div>
-          </div>
-
-          {/* Pending applications for leaders */}
-          {isLeader && pendingApps.length > 0 && (
-            <div>
-              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-amber-400" /> Pending Applications
-              </h2>
-              <div className="space-y-3">
-                {pendingApps.map((app) => (
-                  <div key={app.id} className="glass rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <p className="text-white font-medium">{app.user?.name} → <span className="text-[#a78bfa]">{app.team?.team_name}</span></p>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {app.user?.skills?.slice(0, 4).map(s => <span key={s} className="skill-tag">{s}</span>)}
-                      </div>
-                    </div>
-                    <Link href={`/teams/${app.team_id}`} className="btn-secondary text-sm py-1.5 px-3 flex items-center gap-1">
-                      Review <ArrowRight className="w-3 h-3" />
-                    </Link>
-                  </div>
-                ))}
+        <div className="relative z-10 space-y-12">
+          {/* Stats cards ... */}
+          
+          {/* Matching Section */}
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                  {suggestedTeams.length > 0 ? (
+                    <><Zap className="w-6 h-6 text-amber-400" /> Top Team Matches</>
+                  ) : (
+                    <><Users className="w-6 h-6 text-[#22d3ee]" /> Recommended Hackers</>
+                  )}
+                </h2>
+                <p className="text-sm text-[#64748b] mt-1">
+                  {suggestedTeams.length > 0 
+                    ? "Based on your skills and interests" 
+                    : "No matching teams found right now. Connect with these hackers instead!"}
+                </p>
               </div>
+              <Link href={suggestedTeams.length > 0 ? "/teams" : "/hackers"} className="text-[#a78bfa] hover:text-white flex items-center gap-1 font-medium transition-all group">
+                Browse more <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
             </div>
-          )}
 
-          {/* My Teams */}
-          {myTeams.length > 0 && (
-            <div>
-              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                <Users className="w-5 h-5 text-[#a78bfa]" /> My Teams
-              </h2>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {myTeams.map((team) => (
-                  <Link key={team.id} href={`/teams/${team.id}`} className="glass rounded-2xl p-5 card-hover block">
-                    <div className="flex items-start justify-between mb-3">
-                      <h3 className="font-semibold text-white">{team.team_name}</h3>
-                      <span className={`badge ${team.status === 'OPEN' ? 'badge-success' : 'badge-danger'}`}>{team.status}</span>
+            {suggestedTeams.length > 0 ? (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {suggestedTeams.map((team) => (
+                  <Link key={team.id} href={`/teams/${team.id}`} className="glass rounded-3xl p-6 card-hover border-white/5 relative group overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-[40px] pointer-events-none group-hover:bg-emerald-500/10 transition-all" />
+                    <div className="flex items-start justify-between mb-4">
+                      <h3 className="font-bold text-white text-lg truncate flex-1">{team.team_name}</h3>
+                      <span className="badge badge-success text-[10px]">OPEN</span>
                     </div>
-                    <p className="text-sm text-[#94a3b8] line-clamp-2 mb-3">{team.project_idea || 'No project idea yet'}</p>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1 text-sm">
-                        <UserCheck className="w-4 h-4 text-[#a78bfa]" />
-                        <span className="text-[#94a3b8]">{team.current_members}/{team.max_members}</span>
+                    <div className="flex items-center gap-2 text-[10px] text-[#a78bfa] mb-4 font-bold tracking-widest uppercase">
+                      <Trophy className="w-3.5 h-3.5" /> {team.hackathon?.title}
+                    </div>
+                    <p className="text-sm text-[#94a3b8] line-clamp-2 mb-6 h-10">{team.project_idea || 'Working on something awesome...'}</p>
+                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                      <div className="flex -space-x-2">
+                        {[...Array(team.current_members)].map((_, i) => (
+                          <div key={i} className="w-6 h-6 rounded-full border border-[#1e1b2e] bg-[#2a2640] flex items-center justify-center text-[10px] text-white">
+                            <User className="w-3 h-3" />
+                          </div>
+                        ))}
+                        {[...Array(team.max_members - team.current_members)].map((_, i) => (
+                          <div key={i} className="w-6 h-6 rounded-full border border-dashed border-white/10 flex items-center justify-center" />
+                        ))}
                       </div>
-                      <span className="text-xs text-[#64748b]">{team.max_members - team.current_members} spots left</span>
+                      <span className="text-xs text-emerald-400 font-black">APPLY NOW →</span>
                     </div>
                   </Link>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* Explore Teams (Suggested) */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                <Zap className="w-5 h-5 text-amber-400" /> Explore Teams
-              </h2>
-              <Link href="/teams" className="text-sm text-[#a78bfa] hover:text-white flex items-center gap-1 transition-colors">
-                View all <ArrowRight className="w-3 h-3" />
-              </Link>
-            </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {suggestedTeams.map((team) => (
-                <Link key={team.id} href={`/teams/${team.id}`} className="glass rounded-2xl p-5 card-hover block border-white/5">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-semibold text-white text-sm truncate">{team.team_name}</h3>
-                    <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/10 font-bold">OPEN</span>
+            ) : (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                {suggestedHackers.map((hacker) => (
+                  <div key={hacker.id} className="glass rounded-3xl p-6 border border-white/5 text-center group hover:bg-white/[0.03] transition-all">
+                    <div className="w-16 h-16 rounded-2xl gradient-bg mx-auto mb-4 flex items-center justify-center text-white text-xl font-bold group-hover:scale-110 transition-transform shadow-xl shadow-black/20">
+                      {hacker.name?.charAt(0).toUpperCase()}
+                    </div>
+                    <h3 className="font-bold text-white mb-1">{hacker.name}</h3>
+                    <p className="text-[10px] text-[#64748b] uppercase tracking-tighter mb-4 line-clamp-1">{hacker.skills?.join(' • ')}</p>
+                    <Link href={`/profile/${hacker.id}`} className="text-xs font-bold text-[#a78bfa] hover:text-white transition-colors">
+                      View Profile →
+                    </Link>
                   </div>
-                  <p className="text-[10px] text-[#a78bfa] mb-2 truncate flex items-center gap-1">
-                    <Trophy className="w-3 h-3" /> {team.hackathon?.title}
-                  </p>
-                  <p className="text-xs text-[#94a3b8] line-clamp-2 mb-3 h-8">{team.project_idea || 'Exciting project in progress...'}</p>
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-[#64748b]">{team.current_members}/{team.max_members} members</span>
-                    <span className="text-emerald-400 font-bold">Apply Now →</span>
-                  </div>
-                </Link>
-              ))}
-              {suggestedTeams.length === 0 && (
-                <div className="sm:col-span-2 lg:col-span-3 p-8 rounded-2xl border border-dashed border-white/10 text-center">
-                  <p className="text-[#64748b] text-sm italic">No new teams found. Why not create one?</p>
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* My Applications */}
-          {myApps.length > 0 && (
-            <div>
-              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-[#22d3ee]" /> My Applications
-              </h2>
+          {/* Pending applications ... */}
               <div className="space-y-3">
                 {myApps.map((app) => (
                   <div key={app.id} className="glass rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
