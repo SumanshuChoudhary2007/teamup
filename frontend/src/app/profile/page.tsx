@@ -3,236 +3,331 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/lib/supabase';
-// Icons: User, Save, Plus, X, Code, Briefcase, Globe, Shield (lucide-react v1.x)
-import { User, Save, Plus, X, Code, Briefcase, Globe, Shield } from 'lucide-react';
-
-const EXP_LEVELS = ['beginner', 'intermediate', 'advanced', 'expert'] as const;
-const COMMON_SKILLS = ['React', 'Next.js', 'TypeScript', 'JavaScript', 'Python', 'Node.js', 'Rust', 'Go', 'Java', 'Flutter', 'Swift', 'Kotlin', 'Vue.js', 'Angular', 'Django', 'FastAPI', 'PostgreSQL', 'MongoDB', 'Firebase', 'AWS', 'Docker', 'Kubernetes', 'GraphQL', 'TailwindCSS', 'Figma', 'UI/UX', 'Machine Learning', 'AI', 'Blockchain', 'Web3', 'Solidity', 'DevOps', 'Git'];
+import { supabase, type Profile } from '@/lib/supabase';
+import { User, Mail, Github, Linkedin, Globe, Save, Zap, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
+import Link from 'next/link';
 
 export default function ProfilePage() {
-  const { user, profile, loading: authLoading, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const router = useRouter();
-  const [name, setName] = useState('');
-  const [bio, setBio] = useState('');
-  const [skills, setSkills] = useState<string[]>([]);
-  const [newSkill, setNewSkill] = useState('');
-  const [experience, setExperience] = useState<typeof EXP_LEVELS[number]>('beginner');
-  const [portfolioLink, setPortfolioLink] = useState('');
-  const [githubUrl, setGithubUrl] = useState('');
-  const [linkedinUrl, setLinkedinUrl] = useState('');
+
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [adminReason, setAdminReason] = useState('');
-  const [requesting, setRequesting] = useState(false);
-  const [requestSent, setRequestSent] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+
+  // Form State
+  const [formData, setFormData] = useState({
+    name: '',
+    bio: '',
+    experience: 'beginner',
+    looking_for: 'team',
+    github_url: '',
+    linkedin_url: '',
+    portfolio_link: ''
+  });
+
+  // Skills
+  const [skills, setSkills] = useState<string[]>([]);
+  const [skillInput, setSkillInput] = useState('');
 
   useEffect(() => {
-    if (!authLoading && !user) router.push('/login');
-  }, [authLoading, user, router]);
+    if (!user) {
+      router.push('/login');
+      return;
+    }
 
-  useEffect(() => {
     if (profile) {
-      setName(profile.name || '');
-      setBio(profile.bio || '');
+      setFormData({
+        name: profile.name || '',
+        bio: profile.bio || '',
+        experience: profile.experience || 'beginner',
+        looking_for: profile.looking_for || 'team',
+        github_url: profile.github_url || '',
+        linkedin_url: profile.linkedin_url || '',
+        portfolio_link: profile.portfolio_link || ''
+      });
       setSkills(profile.skills || []);
-      setExperience(profile.experience || 'beginner');
-      setPortfolioLink(profile.portfolio_link || '');
-      setGithubUrl(profile.github_url || '');
-      setLinkedinUrl(profile.linkedin_url || '');
     }
-  }, [profile]);
+  }, [user, profile, router]);
 
-  const addSkill = (skill: string) => {
-    const s = skill.trim();
-    if (s && !skills.includes(s)) setSkills([...skills, s]);
-    setNewSkill('');
+  const handleAddSkill = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && skillInput.trim()) {
+      e.preventDefault();
+      if (!skills.includes(skillInput.trim())) {
+        setSkills([...skills, skillInput.trim()]);
+      }
+      setSkillInput('');
+    }
   };
 
-  const removeSkill = (skill: string) => setSkills(skills.filter(s => s !== skill));
+  const removeSkill = (skillToRemove: string) => {
+    setSkills(skills.filter(s => s !== skillToRemove));
+  };
 
-  const handleSave = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!user) return;
-    setSaving(true);
-    await supabase
-      .from('profiles')
-      .update({ name, bio, skills, experience, portfolio_link: portfolioLink, github_url: githubUrl, linkedin_url: linkedinUrl })
-      .eq('id', user.id);
-    await refreshProfile();
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
-  };
-
-  const handleAdminRequest = async () => {
-    if (!user || !adminReason.trim()) return;
-    setRequesting(true);
-    const { error } = await supabase
-      .from('admin_requests')
-      .insert({ user_id: user.id, reason: adminReason.trim(), status: 'pending' });
     
-    if (!error) {
-      setRequestSent(true);
-      setAdminReason('');
+    setSaving(true);
+    setError('');
+    setSuccess(false);
+
+    try {
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          name: formData.name,
+          bio: formData.bio,
+          experience: formData.experience,
+          looking_for: formData.looking_for,
+          github_url: formData.github_url,
+          linkedin_url: formData.linkedin_url,
+          portfolio_link: formData.portfolio_link,
+          skills: skills,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      await refreshProfile();
+      setSuccess(true);
+      
+      // Auto redirect to dashboard after success
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 1500);
+      
+    } catch (err: any) {
+      console.error('Error updating profile:', err);
+      setError(err.message || 'Failed to update profile');
+    } finally {
+      setSaving(false);
     }
-    setRequesting(false);
   };
 
-  if (authLoading || !user) return <div className="min-h-screen pt-20 flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" /></div>;
+  if (!user || !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-[#7c3aed] animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto relative">
+    <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto relative">
       <div className="fixed inset-0 bg-grid pointer-events-none opacity-30" />
-
-      <div className="relative z-10">
-        <h1 className="text-3xl font-bold text-white flex items-center gap-3 mb-8">
-          <User className="w-8 h-8 text-[#a78bfa]" /> Edit Profile
-        </h1>
-
-        <div className="glass rounded-2xl p-6 sm:p-8 space-y-6">
-          {/* Avatar & Name */}
-          <div className="flex items-center gap-4 pb-6 border-b border-white/5">
-            <div className="w-16 h-16 rounded-2xl gradient-bg flex items-center justify-center text-white text-2xl font-bold shrink-0">
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="" className="w-full h-full object-cover rounded-2xl" />
-              ) : name.charAt(0)?.toUpperCase() || 'U'}
-            </div>
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-[#94a3b8] mb-1">Full Name</label>
-              <input value={name} onChange={e => setName(e.target.value)} className="input-field" placeholder="Your name" />
-            </div>
-          </div>
-
-          {/* Bio */}
+      
+      <div className="relative z-10 mb-8 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard" className="p-2 rounded-xl glass hover:bg-white/5 transition-colors text-[#94a3b8] hover:text-white">
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
           <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">
-              <Briefcase className="w-4 h-4 inline mr-1" /> Bio
-            </label>
-            <textarea
-              value={bio}
-              onChange={e => setBio(e.target.value)}
-              className="input-field min-h-[100px] resize-y"
-              placeholder="Tell us about yourself, your experience, and what you're looking for..."
-            />
-          </div>
-
-          {/* Experience */}
-          <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">Experience Level</label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {EXP_LEVELS.map(lvl => (
-                <button
-                  key={lvl}
-                  onClick={() => setExperience(lvl)}
-                  className={`py-2.5 px-3 rounded-xl text-sm font-medium transition-all capitalize ${
-                    experience === lvl
-                      ? 'gradient-bg text-white'
-                      : 'glass-light text-[#94a3b8] hover:text-white'
-                  }`}
-                >
-                  {lvl}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Skills */}
-          <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">
-              <Code className="w-4 h-4 inline mr-1" /> Skills
-            </label>
-            <div className="flex flex-wrap gap-2 mb-3">
-              {skills.map(s => (
-                <span key={s} className="badge badge-primary flex items-center gap-1">
-                  {s}
-                  <button onClick={() => removeSkill(s)} className="hover:text-white"><X className="w-3 h-3" /></button>
-                </span>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <input
-                value={newSkill}
-                onChange={e => setNewSkill(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSkill(newSkill))}
-                className="input-field flex-1"
-                placeholder="Add a skill..."
-              />
-              <button onClick={() => addSkill(newSkill)} className="btn-secondary px-3"><Plus className="w-5 h-5" /></button>
-            </div>
-            <div className="flex flex-wrap gap-1.5 mt-3">
-              {COMMON_SKILLS.filter(s => !skills.includes(s)).slice(0, 12).map(s => (
-                <button key={s} onClick={() => addSkill(s)} className="skill-tag hover:bg-[#7c3aed]/20 cursor-pointer transition-all">
-                  + {s}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Links */}
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-[#94a3b8] mb-2">
-                <Globe className="w-4 h-4 inline mr-1" /> GitHub
-              </label>
-              <input value={githubUrl} onChange={e => setGithubUrl(e.target.value)} className="input-field" placeholder="https://github.com/you" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#94a3b8] mb-2">
-                <Briefcase className="w-4 h-4 inline mr-1" /> LinkedIn
-              </label>
-              <input value={linkedinUrl} onChange={e => setLinkedinUrl(e.target.value)} className="input-field" placeholder="https://linkedin.com/in/you" />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[#94a3b8] mb-2">
-              <Globe className="w-4 h-4 inline mr-1" /> Portfolio
-            </label>
-            <input value={portfolioLink} onChange={e => setPortfolioLink(e.target.value)} className="input-field" placeholder="https://your-portfolio.com" />
-          </div>
-
-          {/* Save */}
-          <div className="flex items-center gap-4 pt-4">
-            <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-2 py-3 px-6">
-              {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
-              {saving ? 'Saving...' : 'Save Profile'}
-            </button>
-            {saved && <span className="text-emerald-400 text-sm font-medium animate-fade-in">✓ Profile saved!</span>}
+            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+              <User className="w-8 h-8 text-[#22d3ee]" />
+              Your Profile
+            </h1>
+            <p className="text-[#94a3b8] mt-1">Complete your profile to get better team matches</p>
           </div>
         </div>
+      </div>
 
-        {/* Admin Request Section */}
-        {profile?.role === 'user' && (
-          <div className="mt-8 glass rounded-2xl p-6 sm:p-8 border border-amber-500/20">
-            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-              <Shield className="w-5 h-5 text-amber-500" /> Request Admin Access
-            </h2>
-            <p className="text-sm text-[#94a3b8] mb-6">
-              Apply to become an administrator. Your request will be reviewed by the Super Admin.
-            </p>
-            
-            {requestSent ? (
-              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm font-medium">
-                Your request has been submitted and is currently pending approval.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <textarea
-                  value={adminReason}
-                  onChange={e => setAdminReason(e.target.value)}
-                  className="input-field min-h-[80px]"
-                  placeholder="Why do you need admin access?"
-                />
-                <button 
-                  onClick={handleAdminRequest}
-                  disabled={requesting || !adminReason.trim()}
-                  className="btn-secondary w-full py-3 text-amber-400 hover:text-amber-300 border-amber-500/30 hover:border-amber-500/50"
-                >
-                  {requesting ? 'Submitting...' : 'Submit Request'}
-                </button>
-              </div>
-            )}
+      <div className="relative z-10 glass rounded-3xl p-6 sm:p-10">
+        {error && (
+          <div className="mb-8 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">
+            {error}
           </div>
         )}
+
+        {success && (
+          <div className="mb-8 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center gap-3 animate-slide-up">
+            <CheckCircle2 className="w-5 h-5" />
+            Profile updated successfully! Redirecting to dashboard...
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            {/* Basic Info */}
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold text-white border-b border-white/5 pb-2">Basic Info</h2>
+              
+              <div>
+                <label className="block text-sm font-medium text-[#94a3b8] mb-2">Full Name</label>
+                <div className="input-with-icon">
+                  <User className="input-icon input-icon-left w-5 h-5" />
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                    className="input-field has-icon-left"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#94a3b8] mb-2">Email (Read Only)</label>
+                <div className="input-with-icon">
+                  <Mail className="input-icon input-icon-left w-5 h-5" />
+                  <input
+                    type="email"
+                    value={user.email}
+                    className="input-field has-icon-left opacity-50 cursor-not-allowed"
+                    disabled
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#94a3b8] mb-2">Bio</label>
+                <textarea
+                  value={formData.bio}
+                  onChange={e => setFormData({...formData, bio: e.target.value})}
+                  className="input-field min-h-[120px] py-3"
+                  placeholder="Tell us about yourself..."
+                />
+              </div>
+            </div>
+
+            {/* Hackathon Preferences */}
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold text-white border-b border-white/5 pb-2">Preferences</h2>
+
+              <div>
+                <label className="block text-sm font-medium text-[#94a3b8] mb-2">What are you looking for?</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({...formData, looking_for: 'team'})}
+                    className={`py-3 px-4 rounded-xl border text-sm font-medium transition-all ${
+                      formData.looking_for === 'team' 
+                        ? 'bg-[#7c3aed]/20 border-[#7c3aed] text-[#a78bfa]' 
+                        : 'glass border-white/5 text-[#94a3b8] hover:bg-white/5'
+                    }`}
+                  >
+                    I need a Team
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({...formData, looking_for: 'members'})}
+                    className={`py-3 px-4 rounded-xl border text-sm font-medium transition-all ${
+                      formData.looking_for === 'members' 
+                        ? 'bg-[#06b6d4]/20 border-[#06b6d4] text-[#22d3ee]' 
+                        : 'glass border-white/5 text-[#94a3b8] hover:bg-white/5'
+                    }`}
+                  >
+                    I have a Team
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#94a3b8] mb-2">Experience Level</label>
+                <select
+                  value={formData.experience}
+                  onChange={e => setFormData({...formData, experience: e.target.value})}
+                  className="input-field"
+                >
+                  <option value="beginner">Beginner (1st Hackathon)</option>
+                  <option value="intermediate">Intermediate (2-3 Hackathons)</option>
+                  <option value="advanced">Advanced (4+ Hackathons)</option>
+                  <option value="expert">Expert (Serial Winner)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#94a3b8] mb-2">Skills (Press Enter to add)</label>
+                <div className="glass rounded-xl p-2 border border-white/5 focus-within:border-[#7c3aed]/50 focus-within:ring-1 focus-within:ring-[#7c3aed]/50 transition-all">
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {skills.map(skill => (
+                      <span key={skill} className="bg-[#7c3aed]/20 text-[#a78bfa] px-3 py-1 rounded-full text-sm flex items-center gap-1 border border-[#7c3aed]/30">
+                        {skill}
+                        <button type="button" onClick={() => removeSkill(skill)} className="hover:text-white">&times;</button>
+                      </span>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    value={skillInput}
+                    onChange={e => setSkillInput(e.target.value)}
+                    onKeyDown={handleAddSkill}
+                    className="w-full bg-transparent outline-none text-white px-2 py-1 text-sm"
+                    placeholder="e.g. React, Python, UI/UX..."
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Social Links */}
+          <div className="space-y-6 pt-6 border-t border-white/5">
+            <h2 className="text-xl font-semibold text-white border-b border-white/5 pb-2">Links</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-[#94a3b8] mb-2">GitHub</label>
+                <div className="input-with-icon">
+                  <Github className="input-icon input-icon-left w-5 h-5" />
+                  <input
+                    type="url"
+                    value={formData.github_url}
+                    onChange={e => setFormData({...formData, github_url: e.target.value})}
+                    className="input-field has-icon-left"
+                    placeholder="https://github.com/..."
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#94a3b8] mb-2">LinkedIn</label>
+                <div className="input-with-icon">
+                  <Linkedin className="input-icon input-icon-left w-5 h-5" />
+                  <input
+                    type="url"
+                    value={formData.linkedin_url}
+                    onChange={e => setFormData({...formData, linkedin_url: e.target.value})}
+                    className="input-field has-icon-left"
+                    placeholder="https://linkedin.com/in/..."
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#94a3b8] mb-2">Portfolio</label>
+                <div className="input-with-icon">
+                  <Globe className="input-icon input-icon-left w-5 h-5" />
+                  <input
+                    type="url"
+                    value={formData.portfolio_link}
+                    onChange={e => setFormData({...formData, portfolio_link: e.target.value})}
+                    className="input-field has-icon-left"
+                    placeholder="https://yourwebsite.com"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-6 border-t border-white/5 flex justify-end">
+            <button
+              type="submit"
+              disabled={saving}
+              className="btn-primary flex items-center gap-2 px-8 py-3"
+            >
+              {saving ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Save className="w-5 h-5" /> Save Profile
+                </>
+              )}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

@@ -26,6 +26,7 @@ export type Profile = {
   bio: string | null;
   github_url: string | null;
   linkedin_url: string | null;
+  looking_for: 'team' | 'members' | null;
   created_at: string;
   updated_at: string;
 };

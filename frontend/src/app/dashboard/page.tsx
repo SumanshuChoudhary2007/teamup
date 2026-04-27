@@ -67,40 +67,68 @@ export default function DashboardPage() {
         setPendingApps((pending || []) as typeof pendingApps);
       }
 
-      // Suggested Teams (Skill-based matching)
-      let matches: any[] = [];
-      if (profile?.skills && profile.skills.length > 0) {
-        const { data: teamMatches } = await supabase
-          .from('teams')
-          .select('*, hackathon:hackathons(*)')
-          .eq('status', 'OPEN')
-          .neq('created_by', user.id)
-          .overlaps('required_skills', profile.skills)
-          .limit(3);
-        matches = teamMatches || [];
-      }
+      // Recommendations based on 'looking_for'
+      const isLookingForMembers = profile?.looking_for === 'members';
 
-      // Fallback
-      if (matches.length === 0) {
-        const { data: latest } = await supabase
-          .from('teams')
-          .select('*, hackathon:hackathons(*)')
-          .eq('status', 'OPEN')
-          .neq('created_by', user.id)
-          .limit(3)
-          .order('created_at', { ascending: false });
-        matches = latest || [];
-      }
-      setSuggestedTeams(matches);
-
-      // Suggest hackers if no matches
-      if (matches.length === 0) {
-        const { data: hackers } = await supabase
-          .from('profiles')
-          .select('*')
-          .neq('id', user.id)
-          .limit(4);
-        setSuggestedHackers((hackers || []) as Profile[]);
+      if (isLookingForMembers) {
+        // Find Hackers
+        let hackerMatches: any[] = [];
+        if (profile?.skills && profile.skills.length > 0) {
+          const { data } = await supabase
+            .from('profiles')
+            .select('*')
+            .neq('id', user.id)
+            .overlaps('skills', profile.skills)
+            .limit(4);
+          hackerMatches = data || [];
+        }
+        if (hackerMatches.length === 0) {
+          const { data } = await supabase
+            .from('profiles')
+            .select('*')
+            .neq('id', user.id)
+            .limit(4)
+            .order('created_at', { ascending: false });
+          hackerMatches = data || [];
+        }
+        setSuggestedHackers(hackerMatches);
+        setSuggestedTeams([]);
+      } else {
+        // Find Teams
+        let teamMatches: any[] = [];
+        if (profile?.skills && profile.skills.length > 0) {
+          const { data } = await supabase
+            .from('teams')
+            .select('*, hackathon:hackathons(*)')
+            .eq('status', 'OPEN')
+            .neq('created_by', user.id)
+            .overlaps('required_skills', profile.skills)
+            .limit(3);
+          teamMatches = data || [];
+        }
+        if (teamMatches.length === 0) {
+          const { data } = await supabase
+            .from('teams')
+            .select('*, hackathon:hackathons(*)')
+            .eq('status', 'OPEN')
+            .neq('created_by', user.id)
+            .limit(3)
+            .order('created_at', { ascending: false });
+          teamMatches = data || [];
+        }
+        setSuggestedTeams(teamMatches);
+        
+        // Fallback to hackers if NO teams exist at all
+        if (teamMatches.length === 0) {
+          const { data } = await supabase
+            .from('profiles')
+            .select('*')
+            .neq('id', user.id)
+            .limit(4);
+          setSuggestedHackers(data || []);
+        } else {
+          setSuggestedHackers([]);
+        }
       }
 
       setLoading(false);
