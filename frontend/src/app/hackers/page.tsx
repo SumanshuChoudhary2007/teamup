@@ -101,8 +101,8 @@ export default function AllHackersPage() {
                 </div>
 
                 <div className="mt-auto w-full pt-4 border-t border-white/5 flex items-center justify-center gap-4">
-                  {hacker.website_url && (
-                    <a href={hacker.website_url} target="_blank" className="text-[#94a3b8] hover:text-white transition-colors">
+                  {hacker.portfolio_link && (
+                    <a href={hacker.portfolio_link} target="_blank" className="text-[#94a3b8] hover:text-white transition-colors">
                       <Globe className="w-4 h-4" />
                     </a>
                   )}
