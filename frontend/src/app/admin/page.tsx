@@ -294,22 +294,10 @@ export default function AdminPage() {
                         <p className="text-[#94a3b8] text-sm mb-4 bg-white/5 p-3 rounded-xl border border-white/5 italic">
                           "{req.reason}"
                         </p>
-                        {req.status === 'pending' && isAdmin && (
-                          <div className="flex gap-2">
-                            <button 
-                              onClick={() => handleApproveRequest(req.id, 'approved')}
-                              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-all text-sm font-bold"
-                            >
-                              <CheckCircle className="w-4 h-4" /> Approve
-                            </button>
-                            <button 
-                              onClick={() => handleApproveRequest(req.id, 'rejected')}
-                              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all text-sm font-bold"
-                            >
-                              <XCircle className="w-4 h-4" /> Reject
-                            </button>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2 text-xs text-[#64748b]">
+                          <Shield className="w-3.5 h-3.5" />
+                          Approval must be handled by the Database Owner
+                        </div>
                       </div>
                     </div>
                   </div>

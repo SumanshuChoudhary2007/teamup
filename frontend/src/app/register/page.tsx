@@ -43,21 +43,26 @@ function RegisterForm() {
     } else if (data.user) {
       if (isAdminType) {
         // Create admin request - profile is created via DB trigger
-        // We wait a tiny bit to ensure the trigger has finished
-        setTimeout(async () => {
-          const { error: reqErr } = await supabase.from('admin_requests').insert({
-            user_id: data.user!.id,
-            reason: 'Administrator account registration',
-            status: 'pending'
-          });
-          
-          if (reqErr) {
-            console.error('Error creating admin request:', reqErr);
-            // Even if request fails, we show success as the account is created
-          }
-          setSubmitted(true);
-          setLoading(false);
-        }, 800);
+        // We insert immediately since RLS now allows public inserts for this table
+        const { error: reqErr } = await supabase.from('admin_requests').insert({
+          user_id: data.user.id,
+          reason: 'Administrator account registration',
+          status: 'pending'
+        });
+        
+        if (reqErr) {
+          console.error('Error creating admin request:', reqErr);
+          // If request fails due to missing profile (foreign key), we try once more after a short delay
+          setTimeout(async () => {
+             await supabase.from('admin_requests').insert({
+                user_id: data.user!.id,
+                reason: 'Administrator account registration',
+                status: 'pending'
+             });
+          }, 1000);
+        }
+        setSubmitted(true);
+        setLoading(false);
       } else {
         router.push(redirect);
       }
