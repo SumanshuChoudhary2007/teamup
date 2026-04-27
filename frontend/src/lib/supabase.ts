@@ -5,20 +5,12 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-export interface AdminRequest {
-  id: string;
-  user_id: string;
-  reason: string;
-  status: 'pending' | 'approved' | 'rejected';
-  created_at: string;
-  user?: Profile;
-}
-
 export type Profile = {
   id: string;
   name: string;
   email: string;
   role: 'user' | 'team_leader' | 'admin';
+  is_admin: boolean;
   skills: string[];
   experience: 'beginner' | 'intermediate' | 'advanced' | 'expert';
   portfolio_link: string | null;

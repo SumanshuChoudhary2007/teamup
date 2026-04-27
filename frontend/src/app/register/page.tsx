@@ -39,43 +39,10 @@ function RegisterForm() {
     });
 
     if (err) {
-      if (err.message.includes('already registered')) {
-        // If user already exists and it's an admin path, check if they have a pending request
-        if (isAdminType) {
-          const { data: existingUser } = await supabase.from('profiles').select('id, role').eq('email', email).single();
-          if (existingUser) {
-             const { data: existingReq } = await supabase.from('admin_requests').select('status').eq('user_id', existingUser.id).eq('status', 'pending').single();
-             if (existingReq) {
-               setSubmitted(true);
-               setLoading(false);
-               return;
-             }
-          }
-        }
-      }
       setError(err.message);
       setLoading(false);
     } else if (data.user) {
       if (isAdminType) {
-        // Create admin request - profile is created via DB trigger
-        // We insert immediately since RLS now allows public inserts for this table
-        const { error: reqErr } = await supabase.from('admin_requests').insert({
-          user_id: data.user.id,
-          reason: 'Administrator account registration',
-          status: 'pending'
-        });
-        
-        if (reqErr) {
-          console.error('Error creating admin request:', reqErr);
-          // If request fails due to missing profile (foreign key), we try once more after a short delay
-          setTimeout(async () => {
-             await supabase.from('admin_requests').insert({
-                user_id: data.user!.id,
-                reason: 'Administrator account registration',
-                status: 'pending'
-             });
-          }, 1000);
-        }
         setSubmitted(true);
         setLoading(false);
       } else {
@@ -84,68 +51,32 @@ function RegisterForm() {
     }
   };
 
-  const [approvalStatus, setApprovalStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
-
-  useEffect(() => {
-    if (!submitted || !isAdminType) return;
-
-    // Poll for approval status
-    const checkStatus = async () => {
-      // Find the request by user_id
-      // Since the user might not be logged in yet (if email confirm is on), we use the email from state
-      const { data } = await supabase
-        .from('admin_requests')
-        .select('status, profiles!inner(email)')
-        .eq('profiles.email', email)
-        .single();
-      
-      if (data?.status === 'approved') {
-        setApprovalStatus('approved');
-      } else if (data?.status === 'rejected') {
-        setApprovalStatus('rejected');
-      }
-    };
-
-    const interval = setInterval(checkStatus, 3000);
-    return () => clearInterval(interval);
-  }, [submitted, isAdminType, email]);
-
   if (submitted) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4 py-20 relative text-center">
         <div className="fixed inset-0 bg-grid pointer-events-none opacity-40" />
-        <div className={`fixed top-[10%] left-[20%] w-[400px] h-[400px] rounded-full blur-[100px] pointer-events-none ${approvalStatus === 'approved' ? 'bg-emerald-500/10' : 'bg-amber-500/10'}`} />
+        <div className="fixed top-[10%] left-[20%] w-[400px] h-[400px] rounded-full blur-[100px] pointer-events-none bg-amber-500/10" />
         
-        <div className={`glass rounded-3xl p-8 sm:p-12 max-w-md w-full border ${approvalStatus === 'approved' ? 'border-emerald-500/20 shadow-emerald-500/10' : 'border-amber-500/20 shadow-amber-500/10'} shadow-2xl animate-slide-up relative z-10`}>
-           <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg ${approvalStatus === 'approved' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
-             {approvalStatus === 'approved' ? <CheckCircle className="w-10 h-10 animate-bounce" /> : <Clock className="w-10 h-10 animate-pulse" />}
+        <div className="glass rounded-3xl p-8 sm:p-12 max-w-md w-full border border-amber-500/20 shadow-amber-500/10 shadow-2xl animate-slide-up relative z-10">
+           <div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg bg-amber-500/10 text-amber-400">
+             <Clock className="w-10 h-10 animate-pulse" />
            </div>
            
            <h2 className="text-3xl font-bold text-white mb-4 italic">
-             {approvalStatus === 'approved' ? 'Congrats! You are Approved' : 'Registration Received'}
+             Account Created
            </h2>
            
            <p className="text-[#94a3b8] mb-8 leading-relaxed">
-             {approvalStatus === 'approved' 
-               ? 'Your administrator account has been verified. You can now access the full admin dashboard.' 
-               : 'Your administrator account has been created successfully. For security, all admin access must be manually verified.'}
+             Your account was successfully registered. To access the admin dashboard, the Database Owner must manually toggle your Admin status in the database.
            </p>
 
-           <div className={`p-4 rounded-xl border mb-8 font-medium ${
-             approvalStatus === 'approved' ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400' : 'bg-amber-500/5 border-amber-500/20 text-amber-400'
-           }`}>
-             Status: {approvalStatus === 'approved' ? 'Approved' : 'Waiting for Approval'}
+           <div className="p-4 rounded-xl border mb-8 font-medium bg-amber-500/5 border-amber-500/20 text-amber-400">
+             Status: Waiting for Owner
            </div>
 
-           {approvalStatus === 'approved' ? (
-             <button onClick={() => router.push('/login?type=admin')} className="btn-primary w-full py-4 text-lg flex items-center justify-center gap-2">
-               Proceed to Login <ArrowRight className="w-5 h-5" />
-             </button>
-           ) : (
-             <button onClick={() => router.push('/')} className="btn-secondary w-full py-4 text-lg">
-               Back to Home
-             </button>
-           )}
+           <button onClick={() => router.push('/')} className="btn-secondary w-full py-4 text-lg">
+             Back to Home
+           </button>
         </div>
       </div>
     );

@@ -15,8 +15,7 @@ export default function AdminPage() {
   const [hackathons, setHackathons] = useState<Hackathon[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [users, setUsers] = useState<Profile[]>([]);
-  const [adminRequests, setAdminRequests] = useState<any[]>([]);
-  const [tab, setTab] = useState<'hackathons' | 'teams' | 'users' | 'requests'>('hackathons');
+  const [tab, setTab] = useState<'hackathons' | 'teams' | 'users'>('hackathons');
 
   // New hackathon form
   const [showForm, setShowForm] = useState(false);
@@ -32,7 +31,7 @@ export default function AdminPage() {
   const [tags, setTags] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = profile?.is_admin === true;
 
   useEffect(() => {
     // Removed automatic redirect to admin-apply
@@ -43,10 +42,9 @@ export default function AdminPage() {
     supabase.from('hackathons').select('*').order('date', { ascending: true }).then(({ data }) => setHackathons((data || []) as Hackathon[]));
     supabase.from('teams').select('*, hackathon:hackathons(title)').order('created_at', { ascending: false }).then(({ data }) => setTeams((data || []) as Team[]));
     supabase.from('profiles').select('*').order('created_at', { ascending: false }).then(({ data }) => setUsers((data || []) as Profile[]));
-    supabase.from('admin_requests').select('*, user:profiles(*)').order('created_at', { ascending: false }).then(({ data }) => setAdminRequests(data || []));
   }, [isAdmin]);
 
-  // ... (handleCreateHackathon, deleteHackathon, updateRole, handleApproveRequest remain the same)
+  // ... (handleCreateHackathon, deleteHackathon)
   const handleCreateHackathon = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -73,19 +71,9 @@ export default function AdminPage() {
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: role as Profile['role'] } : u));
   };
 
-  const handleApproveRequest = async (requestId: string, status: 'approved' | 'rejected') => {
-    const request = adminRequests.find(r => r.id === requestId);
-    if (!request) return;
-
-    const { error } = await supabase.from('admin_requests').update({ status }).eq('id', requestId);
-    if (error) return;
-
-    if (status === 'approved') {
-      await supabase.from('profiles').update({ role: 'admin' }).eq('id', request.user_id);
-      setUsers(prev => prev.map(u => u.id === request.user_id ? { ...u, role: 'admin' } : u));
-    }
-
-    setAdminRequests(prev => prev.map(r => r.id === requestId ? { ...r, status } : r));
+  const toggleAdmin = async (userId: string, currentStatus: boolean) => {
+    await supabase.from('profiles').update({ is_admin: !currentStatus }).eq('id', userId);
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_admin: !currentStatus } : u));
   };
 
   if (authLoading) return <div className="min-h-screen pt-20 flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" /></div>;
@@ -137,7 +125,7 @@ export default function AdminPage() {
           <h1 className="text-3xl font-bold text-white flex items-center gap-3">
             <Shield className="w-8 h-8 text-amber-400" /> Admin Dashboard
           </h1>
-          <span className="badge badge-warning">{profile?.role?.replace('_', ' ')}</span>
+          <span className="badge badge-warning">Admin</span>
         </div>
 
         {/* Stats */}
@@ -149,12 +137,9 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div className="flex flex-wrap gap-2 mb-6">
-          {(['hackathons', 'teams', 'users', 'requests'] as const).map(t => (
+          {(['hackathons', 'teams', 'users'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
               className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all capitalize flex items-center gap-2 ${tab === t ? 'gradient-bg text-white' : 'glass text-[#94a3b8] hover:text-white'}`}>
-              {t === 'requests' && adminRequests.filter(r => r.status === 'pending').length > 0 && (
-                <span className="w-2 h-2 rounded-full bg-amber-400" />
-              )}
               {t}
             </button>
           ))}
@@ -248,64 +233,25 @@ export default function AdminPage() {
                     <div className="flex flex-wrap gap-1 mt-1">{u.skills?.slice(0, 4).map(s => <span key={s} className="skill-tag">{s}</span>)}</div>
                   </div>
                   {isAdmin && (
-                    <select
-                      value={u.role}
-                      onChange={e => updateRole(u.id, e.target.value)}
-                      className="input-field w-auto text-sm py-2"
-                      style={{ background: '#1e1b2e' }}
+                    <button
+                      onClick={() => toggleAdmin(u.id, u.is_admin)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        u.is_admin 
+                          ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30' 
+                          : 'bg-white/5 text-[#94a3b8] hover:bg-white/10 border border-white/10'
+                      }`}
                     >
-                      {ROLES.map(r => <option key={r} value={r} style={{background:'#1e1b2e'}}>{r.replace('_', ' ')}</option>)}
-                    </select>
+                      {u.is_admin ? 'Remove Admin' : 'Make Admin'}
+                    </button>
                   )}
-                  {!isAdmin && <span className="badge badge-primary text-xs">{u.role.replace('_',' ')}</span>}
+                  {!isAdmin && u.is_admin && <span className="badge badge-warning text-xs">Admin</span>}
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Requests Tab */}
-        {tab === 'requests' && (
-          <div>
-            <h2 className="text-xl font-semibold text-white mb-4">Admin Access Requests</h2>
-            <div className="space-y-4">
-              {adminRequests.length === 0 ? (
-                <div className="glass rounded-2xl p-12 text-center">
-                  <Clock className="w-12 h-12 text-[#64748b] mx-auto mb-4" />
-                  <p className="text-[#94a3b8]">No admin requests found.</p>
-                </div>
-              ) : (
-                adminRequests.map(req => (
-                  <div key={req.id} className="glass rounded-2xl p-5 sm:p-6">
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <div className="w-12 h-12 rounded-2xl gradient-bg flex items-center justify-center text-white text-xl font-bold shrink-0">
-                        {req.user?.name?.charAt(0) || '?'}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="font-bold text-white text-lg">{req.user?.name}</h3>
-                          <span className={`badge ${
-                            req.status === 'pending' ? 'badge-warning' : 
-                            req.status === 'approved' ? 'badge-success' : 'badge-danger'
-                          }`}>
-                            {req.status}
-                          </span>
-                        </div>
-                        <p className="text-[#94a3b8] text-sm mb-4 bg-white/5 p-3 rounded-xl border border-white/5 italic">
-                          "{req.reason}"
-                        </p>
-                        <div className="flex items-center gap-2 text-xs text-[#64748b]">
-                          <Shield className="w-3.5 h-3.5" />
-                          Approval must be handled by the Database Owner
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
+
       </div>
     </div>
   );
