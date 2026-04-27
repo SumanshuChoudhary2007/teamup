@@ -64,15 +64,16 @@ export default function Navbar() {
   const isLeader = profile?.role === 'team_leader' || isAdmin;
 
   const handleLogoClick = async (e: React.MouseEvent) => {
+    if (pathname === '/admin') {
+      router.push('/');
+      return;
+    }
+
     const newClicks = logoClicks + 1;
     setLogoClicks(newClicks);
 
     if (newClicks === 4) {
-      if (isAdmin) {
-        router.push('/admin');
-      } else {
-        router.push('/admin-apply');
-      }
+      router.push('/admin');
       setLogoClicks(0);
     } else if (newClicks >= 10 && profile?.role === 'super_admin') {
       // Secret Super Admin shortcut directly to User Management

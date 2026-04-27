@@ -35,7 +35,7 @@ export default function AdminPage() {
   const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin';
 
   useEffect(() => {
-    if (!authLoading && (!user || !isAdmin)) router.push('/dashboard');
+    if (!authLoading && user && !isAdmin) router.push('/admin-apply');
   }, [authLoading, user, isAdmin, router]);
 
   useEffect(() => {
@@ -46,6 +46,7 @@ export default function AdminPage() {
     supabase.from('admin_requests').select('*, user:profiles!admin_requests_user_id_fkey(*)').order('created_at', { ascending: false }).then(({ data }) => setAdminRequests(data || []));
   }, [isAdmin]);
 
+  // ... (handleCreateHackathon, deleteHackathon, updateRole, handleApproveRequest remain the same)
   const handleCreateHackathon = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -87,7 +88,27 @@ export default function AdminPage() {
     setAdminRequests(prev => prev.map(r => r.id === requestId ? { ...r, status } : r));
   };
 
-  if (authLoading || !isAdmin) return <div className="min-h-screen pt-20 flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" /></div>;
+  if (authLoading) return <div className="min-h-screen pt-20 flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" /></div>;
+
+  if (!user) {
+    return (
+      <div className="min-h-screen pt-24 pb-12 px-4 flex flex-col items-center justify-center relative">
+        <div className="fixed inset-0 bg-grid pointer-events-none opacity-30" />
+        <div className="relative z-10 glass rounded-3xl p-8 sm:p-12 text-center max-w-md w-full border border-white/5 shadow-2xl">
+          <div className="w-20 h-20 rounded-3xl gradient-bg flex items-center justify-center text-white mx-auto mb-6 shadow-lg shadow-purple-500/20">
+            <Shield className="w-10 h-10 text-amber-400" />
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-3">Admin Portal</h1>
+          <p className="text-[#94a3b8] mb-8">You must log in to access the administrator dashboard.</p>
+          <button onClick={() => router.push('/login?redirect=/admin')} className="btn-primary w-full py-4 text-lg">
+            Log In
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) return <div className="min-h-screen pt-20 flex items-center justify-center text-white">Redirecting...</div>;
 
   return (
     <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
