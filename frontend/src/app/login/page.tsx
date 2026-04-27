@@ -1,9 +1,9 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { LogIn, Mail, Lock, ArrowRight, Zap, Eye, EyeOff, Shield } from 'lucide-react';
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 
 function LoginForm() {
   const { signIn } = useAuth();
