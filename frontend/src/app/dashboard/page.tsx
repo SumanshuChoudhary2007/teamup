@@ -26,14 +26,27 @@ export default function DashboardPage() {
     if (!user) return;
     const load = async () => {
       // Teams I created
-      const { data: teams } = await supabase
+      const { data: createdTeams } = await supabase
         .from('teams')
         .select('*, hackathon:hackathons(*)')
         .eq('created_by', user.id)
         .order('created_at', { ascending: false });
-      setMyTeams((teams || []) as Team[]);
 
-      // My applications
+      // Teams I joined (accepted applications)
+      const { data: joinedApps } = await supabase
+        .from('applications')
+        .select('team:teams(*, hackathon:hackathons(*))')
+        .eq('user_id', user.id)
+        .eq('status', 'accepted');
+      
+      const joinedTeams = joinedApps?.map(a => a.team).filter(Boolean) || [];
+      
+      // Combine and remove duplicates (though they shouldn't exist if logic is consistent)
+      const allTeamsMap = new Map();
+      [...(createdTeams || []), ...joinedTeams].forEach(t => allTeamsMap.set(t.id, t));
+      setMyTeams(Array.from(allTeamsMap.values()) as Team[]);
+
+      // My applications (all statuses)
       const { data: apps } = await supabase
         .from('applications')
         .select('*, team:teams(*, hackathon:hackathons(*))')
@@ -42,12 +55,13 @@ export default function DashboardPage() {
       setMyApps((apps || []) as typeof myApps);
 
       // Applications to my teams (for team leaders)
-      if (profile?.role === 'team_leader' || profile?.role === 'admin') {
+      const createdTeamIds = (createdTeams || []).map(t => t.id);
+      if (createdTeamIds.length > 0) {
         const { data: pending } = await supabase
           .from('applications')
           .select('*, user:profiles(name, skills), team:teams(team_name)')
           .eq('status', 'pending')
-          .in('team_id', (teams || []).map(t => t.id));
+          .in('team_id', createdTeamIds);
         setPendingApps((pending || []) as typeof pendingApps);
       }
       setLoading(false);
