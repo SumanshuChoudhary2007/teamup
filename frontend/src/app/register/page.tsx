@@ -4,11 +4,11 @@ import Link from 'next/link';
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { UserPlus, Mail, Lock, User, ArrowRight, Zap, Eye, EyeOff, Shield } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { UserPlus, Mail, Lock, User, ArrowRight, Zap, Eye, EyeOff, Shield, Clock } from 'lucide-react';
 import { Suspense, useState } from 'react';
 
 function RegisterForm() {
-  const { signUp } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const isAdminType = searchParams.get('type') === 'admin';
@@ -20,6 +20,7 @@ function RegisterForm() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,14 +30,64 @@ function RegisterForm() {
     }
     setError('');
     setLoading(true);
-    const { error: err } = await signUp(email, password, name);
+
+    const { data, error: err } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: name } }
+    });
+
     if (err) {
-      setError(err);
+      setError(err.message);
       setLoading(false);
-    } else {
-      router.push(redirect);
+    } else if (data.user) {
+      if (isAdminType) {
+        // Create admin request - profile is created via DB trigger
+        // We wait a tiny bit to ensure the trigger has finished
+        setTimeout(async () => {
+          const { error: reqErr } = await supabase.from('admin_requests').insert({
+            user_id: data.user!.id,
+            reason: 'Administrator account registration',
+            status: 'pending'
+          });
+          
+          if (reqErr) {
+            console.error('Error creating admin request:', reqErr);
+            // Even if request fails, we show success as the account is created
+          }
+          setSubmitted(true);
+          setLoading(false);
+        }, 800);
+      } else {
+        router.push(redirect);
+      }
     }
   };
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 py-20 relative text-center">
+        <div className="fixed inset-0 bg-grid pointer-events-none opacity-40" />
+        <div className="fixed top-[10%] left-[20%] w-[400px] h-[400px] rounded-full blur-[100px] pointer-events-none bg-amber-500/10" />
+        
+        <div className="glass rounded-3xl p-8 sm:p-12 max-w-md w-full border border-amber-500/20 shadow-2xl animate-slide-up relative z-10">
+           <div className="w-20 h-20 rounded-3xl bg-amber-500/10 flex items-center justify-center text-amber-400 mx-auto mb-6 shadow-lg shadow-amber-500/10">
+             <Clock className="w-10 h-10" />
+           </div>
+           <h2 className="text-3xl font-bold text-white mb-4 italic">Registration Received</h2>
+           <p className="text-[#94a3b8] mb-8 leading-relaxed">
+             Your administrator account has been created successfully. For security, all admin access must be manually verified.
+           </p>
+           <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 text-amber-400 text-sm mb-8 font-medium">
+             Status: Waiting for Approval
+           </div>
+           <button onClick={() => router.push('/')} className="btn-primary w-full py-4 text-lg">
+             Back to Home
+           </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-20 relative">
