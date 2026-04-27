@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const { user, profile, loading: authLoading } = useAuth();
   const router = useRouter();
   const [myTeams, setMyTeams] = useState<Team[]>([]);
+  const [suggestedTeams, setSuggestedTeams] = useState<(Team & { hackathon: Hackathon })[]>([]);
   const [myApps, setMyApps] = useState<(Application & { team: Team & { hackathon: Hackathon } })[]>([]);
   const [pendingApps, setPendingApps] = useState<(Application & { user: { name: string; skills: string[] }; team: { team_name: string } })[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,6 +65,17 @@ export default function DashboardPage() {
           .in('team_id', createdTeamIds);
         setPendingApps((pending || []) as typeof pendingApps);
       }
+
+      // Suggested Teams (Not mine, not applied to, and OPEN)
+      const { data: suggested } = await supabase
+        .from('teams')
+        .select('*, hackathon:hackathons(*)')
+        .eq('status', 'OPEN')
+        .neq('created_by', user.id)
+        .limit(3)
+        .order('created_at', { ascending: false });
+      setSuggestedTeams((suggested || []) as typeof suggestedTeams);
+
       setLoading(false);
     };
     load();
@@ -191,6 +203,41 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
+
+          {/* Explore Teams (Suggested) */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                <Zap className="w-5 h-5 text-amber-400" /> Explore Teams
+              </h2>
+              <Link href="/teams" className="text-sm text-[#a78bfa] hover:text-white flex items-center gap-1 transition-colors">
+                View all <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {suggestedTeams.map((team) => (
+                <Link key={team.id} href={`/teams/${team.id}`} className="glass rounded-2xl p-5 card-hover block border-white/5">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-semibold text-white text-sm truncate">{team.team_name}</h3>
+                    <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/10 font-bold">OPEN</span>
+                  </div>
+                  <p className="text-[10px] text-[#a78bfa] mb-2 truncate flex items-center gap-1">
+                    <Trophy className="w-3 h-3" /> {team.hackathon?.title}
+                  </p>
+                  <p className="text-xs text-[#94a3b8] line-clamp-2 mb-3 h-8">{team.project_idea || 'Exciting project in progress...'}</p>
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-[#64748b]">{team.current_members}/{team.max_members} members</span>
+                    <span className="text-emerald-400 font-bold">Apply Now →</span>
+                  </div>
+                </Link>
+              ))}
+              {suggestedTeams.length === 0 && (
+                <div className="sm:col-span-2 lg:col-span-3 p-8 rounded-2xl border border-dashed border-white/10 text-center">
+                  <p className="text-[#64748b] text-sm italic">No new teams found. Why not create one?</p>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* My Applications */}
           {myApps.length > 0 && (
