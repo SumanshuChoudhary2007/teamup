@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase, type Hackathon, type Team, type Profile } from '@/lib/supabase';
 import { Shield, Trophy, Users, Plus, X, Calendar, Globe, Edit3, Trash2, UserCog, CheckCircle, XCircle, Clock } from 'lucide-react';
 
-const ROLES = ['user', 'team_leader', 'admin', 'super_admin'] as const;
+const ROLES = ['user', 'team_leader', 'admin'] as const;
 
 export default function AdminPage() {
   const { user, profile, loading: authLoading } = useAuth();
@@ -32,7 +32,7 @@ export default function AdminPage() {
   const [tags, setTags] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin';
+  const isAdmin = profile?.role === 'admin';
 
   useEffect(() => {
     // Removed automatic redirect to admin-apply
@@ -247,7 +247,7 @@ export default function AdminPage() {
                     <p className="text-xs text-[#64748b] truncate">{u.email}</p>
                     <div className="flex flex-wrap gap-1 mt-1">{u.skills?.slice(0, 4).map(s => <span key={s} className="skill-tag">{s}</span>)}</div>
                   </div>
-                  {profile?.role === 'super_admin' && (
+                  {isAdmin && (
                     <select
                       value={u.role}
                       onChange={e => updateRole(u.id, e.target.value)}
@@ -257,7 +257,7 @@ export default function AdminPage() {
                       {ROLES.map(r => <option key={r} value={r} style={{background:'#1e1b2e'}}>{r.replace('_', ' ')}</option>)}
                     </select>
                   )}
-                  {profile?.role !== 'super_admin' && <span className="badge badge-primary text-xs">{u.role.replace('_',' ')}</span>}
+                  {!isAdmin && <span className="badge badge-primary text-xs">{u.role.replace('_',' ')}</span>}
                 </div>
               ))}
             </div>
@@ -294,7 +294,7 @@ export default function AdminPage() {
                         <p className="text-[#94a3b8] text-sm mb-4 bg-white/5 p-3 rounded-xl border border-white/5 italic">
                           "{req.reason}"
                         </p>
-                        {req.status === 'pending' && profile?.role === 'super_admin' && (
+                        {req.status === 'pending' && isAdmin && (
                           <div className="flex gap-2">
                             <button 
                               onClick={() => handleApproveRequest(req.id, 'approved')}

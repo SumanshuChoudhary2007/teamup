@@ -42,7 +42,7 @@ export default function DashboardPage() {
       setMyApps((apps || []) as typeof myApps);
 
       // Applications to my teams (for team leaders)
-      if (profile?.role === 'team_leader' || profile?.role === 'admin' || profile?.role === 'super_admin') {
+      if (profile?.role === 'team_leader' || profile?.role === 'admin') {
         const { data: pending } = await supabase
           .from('applications')
           .select('*, user:profiles(name, skills), team:teams(team_name)')
@@ -57,7 +57,7 @@ export default function DashboardPage() {
 
   if (authLoading || !user) return <div className="min-h-screen pt-20 flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" /></div>;
 
-  const isLeader = profile?.role === 'team_leader' || profile?.role === 'admin' || profile?.role === 'super_admin';
+  const isLeader = profile?.role === 'team_leader' || profile?.role === 'admin';
 
   const statusIcon = (s: string) => {
     if (s === 'accepted') return <CheckCircle className="w-4 h-4 text-emerald-400" />;

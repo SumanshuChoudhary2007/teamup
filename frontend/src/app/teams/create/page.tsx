@@ -32,7 +32,7 @@ function CreateTeamForm() {
   }, [authLoading, user, router]);
 
   useEffect(() => {
-    const isLeader = profile?.role === 'team_leader' || profile?.role === 'admin' || profile?.role === 'super_admin';
+    const isLeader = profile?.role === 'team_leader' || profile?.role === 'admin';
     if (!authLoading && profile && !isLeader) router.push('/dashboard');
   }, [authLoading, profile, router]);
 

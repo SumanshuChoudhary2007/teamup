@@ -33,7 +33,7 @@ export default function HackathonTeamsPage() {
     load();
   }, [hackathonId]);
 
-  const isLeader = profile?.role === 'team_leader' || profile?.role === 'admin' || profile?.role === 'super_admin';
+  const isLeader = profile?.role === 'team_leader' || profile?.role === 'admin';
 
   const filtered = teams.filter(t => {
     const matchSearch = t.team_name.toLowerCase().includes(search.toLowerCase()) ||

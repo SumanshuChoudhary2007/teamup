@@ -60,7 +60,7 @@ export default function Navbar() {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin';
+  const isAdmin = profile?.role === 'admin';
   const isLeader = profile?.role === 'team_leader' || isAdmin;
 
   const handleLogoClick = async (e: React.MouseEvent) => {
@@ -75,7 +75,7 @@ export default function Navbar() {
     if (newClicks === 4) {
       router.push('/admin');
       setLogoClicks(0);
-    } else if (newClicks >= 10 && profile?.role === 'super_admin') {
+    } else if (newClicks >= 10 && profile?.role === 'admin') {
       // Secret Super Admin shortcut directly to User Management
       router.push('/admin?tab=users');
       setLogoClicks(0);

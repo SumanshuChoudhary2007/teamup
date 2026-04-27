@@ -18,7 +18,7 @@ export type Profile = {
   id: string;
   name: string;
   email: string;
-  role: 'user' | 'team_leader' | 'admin' | 'super_admin';
+  role: 'user' | 'team_leader' | 'admin';
   skills: string[];
   experience: 'beginner' | 'intermediate' | 'advanced' | 'expert';
   portfolio_link: string | null;
