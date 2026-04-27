@@ -35,7 +35,7 @@ export default function AdminPage() {
   const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin';
 
   useEffect(() => {
-    if (!authLoading && user && !isAdmin) router.push('/admin-apply');
+    // Removed automatic redirect to admin-apply
   }, [authLoading, user, isAdmin, router]);
 
   useEffect(() => {
@@ -90,7 +90,7 @@ export default function AdminPage() {
 
   if (authLoading) return <div className="min-h-screen pt-20 flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" /></div>;
 
-  if (!user) {
+  if (!user || !isAdmin) {
     return (
       <div className="min-h-screen pt-24 pb-12 px-4 flex flex-col items-center justify-center relative">
         <div className="fixed inset-0 bg-grid pointer-events-none opacity-30" />
@@ -99,16 +99,35 @@ export default function AdminPage() {
             <Shield className="w-10 h-10 text-amber-400" />
           </div>
           <h1 className="text-3xl font-bold text-white mb-3">Admin Portal</h1>
-          <p className="text-[#94a3b8] mb-8">You must log in to access the administrator dashboard.</p>
-          <button onClick={() => router.push('/login?redirect=/admin')} className="btn-primary w-full py-4 text-lg">
-            Log In
-          </button>
+          <p className="text-[#94a3b8] mb-8">
+            {user ? "Your account does not have administrator privileges." : "You must log in to access the administrator dashboard."}
+          </p>
+          <div className="space-y-4">
+            <button 
+              onClick={async () => {
+                if (user) {
+                  await supabase.auth.signOut();
+                  // Force a reload to clear all auth state
+                  window.location.href = '/login?redirect=/admin';
+                } else {
+                  router.push('/login?redirect=/admin');
+                }
+              }} 
+              className="btn-primary w-full py-4 text-lg"
+            >
+              {user ? "Login with Admin Account" : "Log In"}
+            </button>
+            <button 
+              onClick={() => router.push('/register?redirect=/admin')}
+              className="text-sm text-[#64748b] hover:text-white transition-all block w-full text-center"
+            >
+              Don't have an account? Sign Up
+            </button>
+          </div>
         </div>
       </div>
     );
   }
-
-  if (!isAdmin) return <div className="min-h-screen pt-20 flex items-center justify-center text-white">Redirecting...</div>;
 
   return (
     <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
