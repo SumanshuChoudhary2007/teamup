@@ -5,9 +5,6 @@ const rootPath = path.resolve(__dirname, '../');
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: rootPath,
-  turbopack: {
-    root: rootPath,
-  },
 
   images: {
     remotePatterns: [
