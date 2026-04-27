@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
+// Icons: User, Save, Plus, X, Code, Briefcase, Globe, Shield (lucide-react v1.x)
 import { User, Save, Plus, X, Code, Briefcase, Globe, Shield } from 'lucide-react';
 
 const EXP_LEVELS = ['beginner', 'intermediate', 'advanced', 'expert'] as const;
