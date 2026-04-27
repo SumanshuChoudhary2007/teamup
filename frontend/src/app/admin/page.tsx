@@ -108,9 +108,9 @@ export default function AdminPage() {
                 if (user) {
                   await supabase.auth.signOut();
                   // Force a reload to clear all auth state
-                  window.location.href = '/login?redirect=/admin';
+                  window.location.href = '/login?type=admin&redirect=/admin';
                 } else {
-                  router.push('/login?redirect=/admin');
+                  router.push('/login?type=admin&redirect=/admin');
                 }
               }} 
               className="btn-primary w-full py-4 text-lg"
@@ -118,7 +118,7 @@ export default function AdminPage() {
               {user ? "Login with Admin Account" : "Log In"}
             </button>
             <button 
-              onClick={() => router.push('/register?redirect=/admin')}
+              onClick={() => router.push('/register?type=admin&redirect=/admin')}
               className="text-sm text-[#64748b] hover:text-white transition-all block w-full text-center"
             >
               Don't have an account? Sign Up
