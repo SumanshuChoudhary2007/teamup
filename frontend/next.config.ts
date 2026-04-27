@@ -1,11 +1,6 @@
 import type { NextConfig } from "next";
-import path from "path";
-
-const rootPath = path.resolve(__dirname, '../');
 
 const nextConfig: NextConfig = {
-  outputFileTracingRoot: rootPath,
-
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**.supabase.co' },
