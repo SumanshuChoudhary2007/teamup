@@ -57,6 +57,13 @@ function RegisterForm() {
           <h1 className="text-3xl font-bold text-white mb-2">
             {isAdminType ? 'Admin Registration' : 'Create Account'}
           </h1>
+          {isAdminType && (
+            <div className="flex justify-center mb-4">
+              <span className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[10px] font-bold uppercase tracking-wider">
+                Administrator Mode
+              </span>
+            </div>
+          )}
           <p className="text-[#94a3b8]">
             {isAdminType ? 'Register your administrator account' : 'Join the community of builders'}
           </p>
