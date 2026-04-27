@@ -103,15 +103,17 @@ export default function LandingPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-20 animate-slide-up" style={{ animationDelay: '0.4s' }}>
-          {stats.map((stat) => (
-            <div key={stat.label} className="glass rounded-2xl p-5 text-center card-hover">
-              <stat.icon className="w-6 h-6 text-[#a78bfa] mx-auto mb-2" />
-              <p className="text-2xl sm:text-3xl font-bold gradient-text">{loading ? '...' : stat.value}</p>
-              <p className="text-xs sm:text-sm text-[#64748b] mt-1">{stat.label}</p>
-            </div>
-          ))}
-        </div>
+        {hasData && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-20 animate-slide-up max-w-4xl mx-auto" style={{ animationDelay: '0.4s' }}>
+            {stats.map((stat) => (
+              <div key={stat.label} className="glass rounded-2xl p-5 text-center card-hover">
+                <stat.icon className="w-6 h-6 text-[#a78bfa] mx-auto mb-2" />
+                <p className="text-2xl sm:text-3xl font-bold gradient-text">{loading ? '...' : stat.value}</p>
+                <p className="text-xs sm:text-sm text-[#64748b] mt-1">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Featured Hackathons - Only Real Ones */}
