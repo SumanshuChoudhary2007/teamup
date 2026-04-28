@@ -91,13 +91,32 @@ export default function DashboardPage() {
       // Recommendations based on 'looking_for'
 
       if (isLookingForMembers) {
-        // Find Developers
+        // Fetch IDs of users who are already accepted members of any team
+        const { data: acceptedApps } = await supabase
+          .from('applications')
+          .select('user_id')
+          .eq('status', 'accepted');
+        
+        // Also get IDs of all team leaders (created_by)
+        const { data: allTeams } = await supabase
+          .from('teams')
+          .select('created_by');
+
+        const takenIds = [
+          user.id, // exclude self
+          ...(acceptedApps?.map(a => a.user_id) || []),
+          ...(allTeams?.map(t => t.created_by) || []),
+        ];
+        // Deduplicate
+        const excludeIds = [...new Set(takenIds)];
+
+        // Find Developers (not already in a team)
         let developerMatches: any[] = [];
         if (profile?.skills && profile.skills.length > 0) {
           const { data } = await supabase
             .from('profiles')
             .select('*')
-            .neq('id', user.id)
+            .not('id', 'in', `(${excludeIds.join(',')})`)
             .eq('is_admin', false)
             .overlaps('skills', profile.skills)
             .limit(4);
@@ -107,7 +126,7 @@ export default function DashboardPage() {
           const { data } = await supabase
             .from('profiles')
             .select('*')
-            .neq('id', user.id)
+            .not('id', 'in', `(${excludeIds.join(',')})`)
             .eq('is_admin', false)
             .limit(4)
             .order('created_at', { ascending: false });
