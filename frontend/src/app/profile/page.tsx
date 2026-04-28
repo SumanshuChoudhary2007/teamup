@@ -24,7 +24,9 @@ export default function ProfilePage() {
     looking_for: 'team',
     github_url: '',
     linkedin_url: '',
-    portfolio_link: ''
+    portfolio_link: '',
+    team_name: '',
+    project_idea: ''
   });
 
   // Skills
@@ -38,7 +40,8 @@ export default function ProfilePage() {
     }
 
     if (profile) {
-      setFormData({
+      setFormData(prev => ({
+        ...prev,
         name: profile.name || '',
         bio: profile.bio || '',
         experience: profile.experience || 'beginner',
@@ -46,10 +49,28 @@ export default function ProfilePage() {
         github_url: profile.github_url || '',
         linkedin_url: profile.linkedin_url || '',
         portfolio_link: profile.portfolio_link || ''
-      });
+      }));
       setSkills(profile.skills || []);
+
+      // Fetch team data if they are/were a leader
+      supabase.from('teams').select('*').eq('created_by', user.id).maybeSingle().then(({ data }) => {
+        if (data) {
+          setFormData(prev => ({
+            ...prev,
+            team_name: data.team_name || '',
+            project_idea: data.project_idea || ''
+          }));
+        }
+      });
     }
   }, [user, profile, router]);
+
+  const [hackathonId, setHackathonId] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.from('hackathons').select('id').limit(1).then(({ data }) => {
+      if (data?.[0]) setHackathonId(data[0].id);
+    });
+  }, []);
 
   const handleAddSkill = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && skillInput.trim()) {
@@ -78,11 +99,12 @@ export default function ProfilePage() {
         .from('profiles')
         .upsert({
           id: user.id,
-          email: user.email!, // Email is required for new rows
+          email: user.email!,
           name: formData.name,
           bio: formData.bio,
           experience: formData.experience,
           looking_for: formData.looking_for,
+          role: formData.looking_for === 'members' ? 'team_leader' : 'user',
           github_url: formData.github_url,
           linkedin_url: formData.linkedin_url,
           portfolio_link: formData.portfolio_link,
@@ -91,6 +113,31 @@ export default function ProfilePage() {
         });
 
       if (updateError) throw updateError;
+
+      // Update or Create Team if they have a team
+      if (formData.looking_for === 'members' && hackathonId) {
+        const { data: existingTeam } = await supabase
+          .from('teams')
+          .select('id')
+          .eq('created_by', user.id)
+          .maybeSingle();
+
+        const teamPayload = {
+          created_by: user.id,
+          hackathon_id: hackathonId,
+          team_name: formData.team_name || `${formData.name}'s Team`,
+          project_idea: formData.project_idea,
+          description: formData.bio,
+          required_skills: skills,
+          updated_at: new Date().toISOString()
+        };
+
+        if (existingTeam) {
+          await supabase.from('teams').update(teamPayload).eq('id', existingTeam.id);
+        } else {
+          await supabase.from('teams').insert(teamPayload);
+        }
+      }
 
       await refreshProfile();
       setSuccess(true);
@@ -186,12 +233,14 @@ export default function ProfilePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#94a3b8] mb-2">Bio</label>
+                <label className="block text-sm font-medium text-[#94a3b8] mb-2">
+                  {formData.looking_for === 'team' ? 'Your Bio' : 'Team Description'}
+                </label>
                 <textarea
                   value={formData.bio}
                   onChange={e => setFormData({...formData, bio: e.target.value})}
                   className="input-field min-h-[120px] py-3"
-                  placeholder="Tell us about yourself..."
+                  placeholder={formData.looking_for === 'team' ? "Tell us about yourself..." : "Describe your team and project..."}
                 />
               </div>
             </div>
@@ -228,41 +277,91 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-[#94a3b8] mb-2">Experience Level</label>
-                <select
-                  value={formData.experience}
-                  onChange={e => setFormData({...formData, experience: e.target.value})}
-                  className="input-field"
-                >
-                  <option value="beginner">Beginner (1st Hackathon)</option>
-                  <option value="intermediate">Intermediate (2-3 Hackathons)</option>
-                  <option value="advanced">Advanced (4+ Hackathons)</option>
-                  <option value="expert">Expert (Serial Winner)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[#94a3b8] mb-2">Skills (Press Enter to add)</label>
-                <div className="glass rounded-xl p-2 border border-white/5 focus-within:border-[#7c3aed]/50 focus-within:ring-1 focus-within:ring-[#7c3aed]/50 transition-all">
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {skills.map(skill => (
-                      <span key={skill} className="bg-[#7c3aed]/20 text-[#a78bfa] px-3 py-1 rounded-full text-sm flex items-center gap-1 border border-[#7c3aed]/30">
-                        {skill}
-                        <button type="button" onClick={() => removeSkill(skill)} className="hover:text-white">&times;</button>
-                      </span>
-                    ))}
+              {formData.looking_for === 'team' ? (
+                <div className="space-y-6 animate-slide-up">
+                  <div>
+                    <label className="block text-sm font-medium text-[#94a3b8] mb-2">Experience Level</label>
+                    <select
+                      value={formData.experience}
+                      onChange={e => setFormData({...formData, experience: e.target.value})}
+                      className="input-field"
+                    >
+                      <option value="beginner">Beginner (1st Hackathon)</option>
+                      <option value="intermediate">Intermediate (2-3 Hackathons)</option>
+                      <option value="advanced">Advanced (4+ Hackathons)</option>
+                      <option value="expert">Expert (Serial Winner)</option>
+                    </select>
                   </div>
-                  <input
-                    type="text"
-                    value={skillInput}
-                    onChange={e => setSkillInput(e.target.value)}
-                    onKeyDown={handleAddSkill}
-                    className="w-full bg-transparent outline-none text-white px-2 py-1 text-sm"
-                    placeholder="e.g. React, Python, UI/UX..."
-                  />
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#94a3b8] mb-2">Your Skills (Press Enter to add)</label>
+                    <div className="glass rounded-xl p-2 border border-white/5 focus-within:border-[#7c3aed]/50 focus-within:ring-1 focus-within:ring-[#7c3aed]/50 transition-all">
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {skills.map(skill => (
+                          <span key={skill} className="bg-[#7c3aed]/20 text-[#a78bfa] px-3 py-1 rounded-full text-sm flex items-center gap-1 border border-[#7c3aed]/30">
+                            {skill}
+                            <button type="button" onClick={() => removeSkill(skill)} className="hover:text-white">&times;</button>
+                          </span>
+                        ))}
+                      </div>
+                      <input
+                        type="text"
+                        value={skillInput}
+                        onChange={e => setSkillInput(e.target.value)}
+                        onKeyDown={handleAddSkill}
+                        className="w-full bg-transparent outline-none text-white px-2 py-1 text-sm"
+                        placeholder="e.g. React, Python, UI/UX..."
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-6 animate-slide-up">
+                  <div>
+                    <label className="block text-sm font-medium text-[#94a3b8] mb-2">Team Name</label>
+                    <input
+                      type="text"
+                      value={formData.team_name}
+                      onChange={e => setFormData({...formData, team_name: e.target.value})}
+                      className="input-field"
+                      placeholder="e.g. Code Catalysts"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#94a3b8] mb-2">Project Idea</label>
+                    <input
+                      type="text"
+                      value={formData.project_idea}
+                      onChange={e => setFormData({...formData, project_idea: e.target.value})}
+                      className="input-field"
+                      placeholder="What are you planning to build?"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#94a3b8] mb-2">Skills Needed (Press Enter to add)</label>
+                    <div className="glass rounded-xl p-2 border border-white/5 focus-within:border-[#06b6d4]/50 focus-within:ring-1 focus-within:ring-[#06b6d4]/50 transition-all">
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {skills.map(skill => (
+                          <span key={skill} className="bg-[#06b6d4]/20 text-[#22d3ee] px-3 py-1 rounded-full text-sm flex items-center gap-1 border border-[#06b6d4]/30">
+                            {skill}
+                            <button type="button" onClick={() => removeSkill(skill)} className="hover:text-white">&times;</button>
+                          </span>
+                        ))}
+                      </div>
+                      <input
+                        type="text"
+                        value={skillInput}
+                        onChange={e => setSkillInput(e.target.value)}
+                        onKeyDown={handleAddSkill}
+                        className="w-full bg-transparent outline-none text-white px-2 py-1 text-sm"
+                        placeholder="e.g. Backend, UI/UX, AI..."
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
