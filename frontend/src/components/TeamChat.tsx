@@ -125,12 +125,19 @@ export default function TeamChat({ teamId, userId, leaderId }: { teamId: string,
           recipientIds.delete(userId);
 
           // 3. Create notifications
+          const { data: senderProfile } = await supabase
+            .from('profiles')
+            .select('name')
+            .eq('id', userId)
+            .single();
+
           const notifications = Array.from(recipientIds).map(recipientId => ({
             recipient_id: recipientId,
-            type: 'team_chat',
-            title: `New message in ${team.team_name}`,
-            message: content.length > 50 ? `${content.substring(0, 50)}...` : content,
-            link: `/teams/${teamId}`
+            type: 'chat',
+            title: `Team Chat: ${team.team_name}`,
+            message: `${senderProfile?.name || 'Someone'}: ${content.length > 50 ? `${content.substring(0, 50)}...` : content}`,
+            link: `/teams/${teamId}`,
+            is_read: false
           }));
 
           if (notifications.length > 0) {
