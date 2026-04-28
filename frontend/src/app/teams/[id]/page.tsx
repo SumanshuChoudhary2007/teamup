@@ -10,6 +10,7 @@ import {
   CheckCircle, XCircle, Clock, Shield, User, MessageSquare,
   AlertCircle, Star, Zap, FileText
 } from 'lucide-react';
+import TeamChat from '@/components/TeamChat';
 
 export default function TeamDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -131,6 +132,11 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
         
         // Increment the member count in the teams table
         await supabase.rpc('increment_team_members', { team_id_input: id });
+
+        // Remove user from developers list by updating their status
+        if (app?.user_id) {
+          await supabase.from('profiles').update({ looking_for: 'none' }).eq('id', app.user_id);
+        }
       }
 
       setApplications(prev => prev.filter(a => a.id !== appId));
@@ -379,6 +385,11 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+              {isMember && team && user && (
+                <div className="animate-slide-up">
+                  <TeamChat teamId={team.id} userId={user.id} leaderId={team.created_by} />
                 </div>
               )}
             </div>

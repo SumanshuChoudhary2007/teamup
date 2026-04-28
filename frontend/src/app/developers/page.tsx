@@ -15,6 +15,8 @@ export default function AllDevelopersPage() {
       const { data } = await supabase
         .from('profiles')
         .select('*')
+        .eq('looking_for', 'team')
+        .eq('is_admin', false)
         .order('created_at', { ascending: false });
       setDevelopers((data || []) as Profile[]);
       setLoading(false);
