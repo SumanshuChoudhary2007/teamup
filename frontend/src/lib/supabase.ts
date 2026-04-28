@@ -9,7 +9,7 @@ export type Profile = {
   id: string;
   name: string;
   email: string;
-  role: 'user' | 'team_leader' | 'admin';
+  role: 'user' | 'team_leader' | 'admin' | 'admin_pending';
   is_admin: boolean;
   skills: string[];
   experience: 'beginner' | 'intermediate' | 'advanced' | 'expert';
