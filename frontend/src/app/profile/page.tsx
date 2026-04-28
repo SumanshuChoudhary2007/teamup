@@ -26,9 +26,7 @@ export default function ProfilePage() {
     looking_for: 'team',
     github_url: '',
     linkedin_url: '',
-    portfolio_link: '',
-    team_name: '',
-    project_idea: ''
+    portfolio_link: ''
   });
 
   // Skills
@@ -55,25 +53,8 @@ export default function ProfilePage() {
       setSkills(profile.skills || []);
       setAvatarUrl(profile.avatar_url || '');
 
-      // Fetch team data if they are/were a leader
-      supabase.from('teams').select('*').eq('created_by', user.id).maybeSingle().then(({ data }) => {
-        if (data) {
-          setFormData(prev => ({
-            ...prev,
-            team_name: data.team_name || '',
-            project_idea: data.project_idea || ''
-          }));
-        }
-      });
     }
   }, [user, profile, router]);
-
-  const [hackathonId, setHackathonId] = useState<string | null>(null);
-  useEffect(() => {
-    supabase.from('hackathons').select('id').limit(1).then(({ data }) => {
-      if (data?.[0]) setHackathonId(data[0].id);
-    });
-  }, []);
 
   const handleAddSkill = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && skillInput.trim()) {
@@ -134,30 +115,7 @@ export default function ProfilePage() {
 
       if (updateError) throw updateError;
 
-      // Update or Create Team if they have a team
-      if (formData.looking_for === 'members' && hackathonId) {
-        const { data: existingTeam } = await supabase
-          .from('teams')
-          .select('id')
-          .eq('created_by', user.id)
-          .maybeSingle();
 
-        const teamPayload = {
-          created_by: user.id,
-          hackathon_id: hackathonId,
-          team_name: formData.team_name || `${formData.name}'s Team`,
-          project_idea: formData.project_idea,
-          description: formData.bio,
-          required_skills: skills,
-          updated_at: new Date().toISOString()
-        };
-
-        if (existingTeam) {
-          await supabase.from('teams').update(teamPayload).eq('id', existingTeam.id);
-        } else {
-          await supabase.from('teams').insert(teamPayload);
-        }
-      }
 
       await refreshProfile();
       setSuccess(true);
