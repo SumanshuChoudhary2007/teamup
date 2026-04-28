@@ -260,6 +260,42 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
     }
   };
 
+  const deleteTeam = async () => {
+    if (!user || !team || !isLeader) return;
+    if (!confirm('CRITICAL: This will permanently delete your team, all members, chat history, and applications. This cannot be undone. Are you sure?')) return;
+
+    setActionLoading('deleting');
+    try {
+      // 1. Notify all members first
+      const memberIds = members.filter(m => m.id !== user.id).map(m => m.id);
+      if (memberIds.length > 0) {
+        const notifications = memberIds.map(mId => ({
+          recipient_id: mId,
+          type: 'team_deleted',
+          title: 'Team Dissolved',
+          message: `The team "${team.team_name}" has been deleted by the leader.`,
+        }));
+        await supabase.from('notifications').insert(notifications);
+      }
+
+      // 2. Delete the team (Cascades to applications and messages)
+      const { error } = await supabase
+        .from('teams')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      alert('Team deleted successfully.');
+      router.push('/dashboard');
+    } catch (err: any) {
+      console.error('Error deleting team:', err);
+      alert(`Failed to delete team: ${err.message}`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   if (loading) return (
     <div className="min-h-screen pt-20 flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" />
@@ -487,6 +523,15 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                   <CheckCircle className="w-4 h-4 inline mr-2" />
                   You are a member of this team
                 </div>
+              )}
+              {isLeader && (
+                <button 
+                  onClick={deleteTeam}
+                  disabled={actionLoading === 'deleting'}
+                  className="w-full py-4 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all flex items-center justify-center gap-2 text-sm font-bold mt-4"
+                >
+                  {actionLoading === 'deleting' ? <div className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" /> : <><XCircle className="w-4 h-4" /> Delete Team</>}
+                </button>
               )}
             </div>
           </div>
