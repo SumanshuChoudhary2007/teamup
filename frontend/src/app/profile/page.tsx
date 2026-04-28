@@ -242,16 +242,90 @@ export default function ProfilePage() {
           </div>
 
           {formData.looking_for === 'members' ? (
-            <div className="glass rounded-3xl p-10 border border-[#06b6d4]/20 bg-[#06b6d4]/5 text-center max-w-lg mx-auto animate-slide-up">
-              <div className="w-16 h-16 rounded-2xl bg-[#06b6d4]/10 flex items-center justify-center text-[#22d3ee] mx-auto mb-6 shadow-lg border border-[#06b6d4]/20">
-                <Users className="w-8 h-8" />
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Basic Info */}
+                <div className="space-y-6">
+                  <h2 className="text-xl font-semibold text-white border-b border-white/5 pb-2">Basic Info</h2>
+                  <div>
+                    <label className="block text-sm font-medium text-[#94a3b8] mb-2">Full Name</label>
+                    <div className="input-with-icon">
+                      <User className="input-icon input-icon-left w-5 h-5" />
+                      <input
+                        type="text"
+                        required
+                        value={formData.name}
+                        onChange={e => setFormData({...formData, name: e.target.value})}
+                        className="input-field has-icon-left"
+                        placeholder="Enter your name"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#94a3b8] mb-2">Email (Read Only)</label>
+                    <div className="input-with-icon">
+                      <Mail className="input-icon input-icon-left w-5 h-5" />
+                      <input
+                        type="email"
+                        value={user.email}
+                        className="input-field has-icon-left opacity-50 cursor-not-allowed"
+                        disabled
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#94a3b8] mb-2">Your Bio</label>
+                    <textarea
+                      value={formData.bio}
+                      onChange={e => setFormData({...formData, bio: e.target.value})}
+                      className="input-field min-h-[120px] py-3"
+                      placeholder="Tell us about yourself as a leader..."
+                    />
+                  </div>
+                </div>
+
+                {/* Skills & Experience */}
+                <div className="space-y-6">
+                  <h2 className="text-xl font-semibold text-white border-b border-white/5 pb-2">Your Skills & Experience</h2>
+                  <div>
+                    <label className="block text-sm font-medium text-[#94a3b8] mb-2">Experience Level</label>
+                    <select
+                      value={formData.experience}
+                      onChange={e => setFormData({...formData, experience: e.target.value as any})}
+                      className="input-field"
+                    >
+                      <option value="beginner">Beginner (1st Hackathon)</option>
+                      <option value="intermediate">Intermediate (2-3 Hackathons)</option>
+                      <option value="advanced">Advanced (4+ Hackathons)</option>
+                      <option value="expert">Expert (Serial Winner)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#94a3b8] mb-2">
+                      Your Skills as Leader <span className="text-[#64748b] font-normal normal-case tracking-normal">(Press Enter to add)</span>
+                    </label>
+                    <div className="glass rounded-xl p-2 border border-white/5 focus-within:border-[#06b6d4]/50 focus-within:ring-1 focus-within:ring-[#06b6d4]/50 transition-all">
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {skills.map(skill => (
+                          <span key={skill} className="bg-[#06b6d4]/20 text-[#22d3ee] px-3 py-1 rounded-full text-sm flex items-center gap-1 border border-[#06b6d4]/30">
+                            {skill}
+                            <button type="button" onClick={() => removeSkill(skill)} className="hover:text-white">&times;</button>
+                          </span>
+                        ))}
+                      </div>
+                      <input
+                        type="text"
+                        value={skillInput}
+                        onChange={e => setSkillInput(e.target.value)}
+                        onKeyDown={handleAddSkill}
+                        className="w-full bg-transparent outline-none text-white px-2 py-1 text-sm"
+                        placeholder="e.g. React, Python, UI/UX..."
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-3">Recruiting Mode</h3>
-              <p className="text-[#94a3b8] mb-0 leading-relaxed">
-                Awesome! As a team leader, you skip the developer profile setup. 
-                You'll list your team and required skills directly on the dashboard.
-              </p>
-            </div>
+            </>
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
