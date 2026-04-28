@@ -199,9 +199,41 @@ export default function ProfilePage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-8">
+          
+          {/* Choice Toggle Moved to Top */}
+          <div className="space-y-6 mb-10">
+            <div className="glass rounded-2xl p-4 border border-white/5">
+              <label className="block text-sm font-bold text-[#64748b] uppercase tracking-widest mb-4 px-2">Your Objective</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setFormData({...formData, looking_for: 'team'})}
+                  className={`py-4 px-4 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                    formData.looking_for === 'team' 
+                      ? 'bg-[#7c3aed]/20 border-[#7c3aed] text-[#a78bfa] shadow-lg shadow-[#7c3aed]/10' 
+                      : 'glass border-white/5 text-[#94a3b8] hover:bg-white/5'
+                  }`}
+                >
+                  <Zap className="w-4 h-4" /> I need a Team
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({...formData, looking_for: 'members'})}
+                  className={`py-4 px-4 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                    formData.looking_for === 'members' 
+                      ? 'bg-[#06b6d4]/20 border-[#06b6d4] text-[#22d3ee] shadow-lg shadow-[#06b6d4]/10' 
+                      : 'glass border-white/5 text-[#94a3b8] hover:bg-white/5'
+                  }`}
+                >
+                  <Users className="w-4 h-4" /> I have a Team
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             
-            {/* Basic Info */}
+            {/* Basic Info - Always shown but simplified */}
             <div className="space-y-6">
               <h2 className="text-xl font-semibold text-white border-b border-white/5 pb-2">Basic Info</h2>
               
@@ -211,10 +243,11 @@ export default function ProfilePage() {
                   <User className="input-icon input-icon-left w-5 h-5" />
                   <input
                     type="text"
+                    required
                     value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
                     className="input-field has-icon-left"
-                    required
+                    placeholder="Enter your name"
                   />
                 </div>
               </div>
@@ -232,50 +265,22 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-[#94a3b8] mb-2">
-                  {formData.looking_for === 'team' ? 'Your Bio' : 'Team Description'}
-                </label>
-                <textarea
-                  value={formData.bio}
-                  onChange={e => setFormData({...formData, bio: e.target.value})}
-                  className="input-field min-h-[120px] py-3"
-                  placeholder={formData.looking_for === 'team' ? "Tell us about yourself..." : "Describe your team and project..."}
-                />
-              </div>
+              {formData.looking_for === 'team' && (
+                <div className="animate-slide-up">
+                  <label className="block text-sm font-medium text-[#94a3b8] mb-2">Your Bio</label>
+                  <textarea
+                    value={formData.bio}
+                    onChange={e => setFormData({...formData, bio: e.target.value})}
+                    className="input-field min-h-[120px] py-3"
+                    placeholder="Tell us about yourself..."
+                  />
+                </div>
+              )}
             </div>
 
-            {/* Hackathon Preferences */}
+            {/* Conditional Section */}
             <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-white border-b border-white/5 pb-2">Preferences</h2>
-
-              <div>
-                <label className="block text-sm font-medium text-[#94a3b8] mb-2">What are you looking for?</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({...formData, looking_for: 'team'})}
-                    className={`py-3 px-4 rounded-xl border text-sm font-medium transition-all ${
-                      formData.looking_for === 'team' 
-                        ? 'bg-[#7c3aed]/20 border-[#7c3aed] text-[#a78bfa]' 
-                        : 'glass border-white/5 text-[#94a3b8] hover:bg-white/5'
-                    }`}
-                  >
-                    I need a Team
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({...formData, looking_for: 'members'})}
-                    className={`py-3 px-4 rounded-xl border text-sm font-medium transition-all ${
-                      formData.looking_for === 'members' 
-                        ? 'bg-[#06b6d4]/20 border-[#06b6d4] text-[#22d3ee]' 
-                        : 'glass border-white/5 text-[#94a3b8] hover:bg-white/5'
-                    }`}
-                  >
-                    I have a Team
-                  </button>
-                </div>
-              </div>
+              <h2 className="text-xl font-semibold text-white border-b border-white/5 pb-2">Details</h2>
 
               {formData.looking_for === 'team' ? (
                 <div className="space-y-6 animate-slide-up">
