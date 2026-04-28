@@ -18,8 +18,11 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   const [team, setTeam] = useState<(Team & { hackathon: Hackathon; creator: Profile }) | null>(null);
   const [members, setMembers] = useState<Profile[]>([]);
   const [applications, setApplications] = useState<(Application & { user: Profile })[]>([]);
+  const [myApplication, setMyApplication] = useState<Application | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [applyMessage, setApplyMessage] = useState('');
+  const [showApplyForm, setShowApplyForm] = useState(false);
 
   useEffect(() => {
     const loadTeam = async () => {
@@ -61,6 +64,17 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
             .eq('status', 'pending');
           setApplications((pendingApps || []) as any);
         }
+
+        // Check if current user has an application
+        if (user && user.id !== teamData.created_by) {
+          const { data: myAppData } = await supabase
+            .from('applications')
+            .select('*')
+            .eq('team_id', id)
+            .eq('user_id', user.id)
+            .maybeSingle();
+          setMyApplication(myAppData);
+        }
       } catch (err) {
         console.error('Load Error:', err);
       } finally {
@@ -70,6 +84,35 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
 
     loadTeam();
   }, [id, user, router]);
+
+  const handleApply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !team || myApplication) return;
+    
+    setActionLoading('applying');
+    try {
+      const { data, error } = await supabase
+        .from('applications')
+        .insert({
+          user_id: user.id,
+          team_id: id,
+          message: applyMessage,
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      setMyApplication(data);
+      setShowApplyForm(false);
+      alert('Application sent successfully!');
+    } catch (err: any) {
+      console.error('Error applying:', err);
+      alert(`Failed to send application: ${err.message}`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const handleApplication = async (appId: string, status: 'accepted' | 'rejected') => {
     setActionLoading(appId);
@@ -232,13 +275,57 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                 <div className={`w-3 h-3 rounded-full ${team.status === 'OPEN' ? 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)]' : 'bg-red-500'} animate-pulse`} />
               </div>
               
-              {!isMember && team.status === 'OPEN' && (
-                <Link href={`/hackathons`} className="btn-primary w-full py-4 flex items-center justify-center gap-2">
-                  Apply to Join <MessageSquare className="w-4 h-4" />
-                </Link>
+              {!isMember && team.status === 'OPEN' && !myApplication && (
+                <>
+                  {!showApplyForm ? (
+                    <button 
+                      onClick={() => setShowApplyForm(true)}
+                      className="btn-primary w-full py-4 flex items-center justify-center gap-2"
+                    >
+                      Apply to Join <MessageSquare className="w-4 h-4" />
+                    </button>
+                  ) : (
+                    <form onSubmit={handleApply} className="space-y-4 animate-slide-up">
+                      <textarea
+                        value={applyMessage}
+                        onChange={(e) => setApplyMessage(e.target.value)}
+                        placeholder="Introduce yourself and why you want to join..."
+                        className="input-field min-h-[100px] text-sm"
+                        required
+                      />
+                      <div className="flex gap-2">
+                        <button 
+                          type="submit"
+                          disabled={actionLoading === 'applying'}
+                          className="btn-primary flex-1 py-3 text-sm"
+                        >
+                          {actionLoading === 'applying' ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" /> : 'Send Request'}
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => setShowApplyForm(false)}
+                          className="btn-secondary px-4 py-3 text-sm"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </>
               )}
+
+              {myApplication && !isMember && (
+                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center">
+                  <div className="flex items-center justify-center gap-2 text-amber-400 font-bold mb-1">
+                    <Clock className="w-4 h-4" /> Application Pending
+                  </div>
+                  <p className="text-xs text-[#94a3b8]">The team leader is reviewing your request.</p>
+                </div>
+              )}
+
               {isMember && (
                 <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-center text-sm font-medium">
+                  <CheckCircle className="w-4 h-4 inline mr-2" />
                   You are a member of this team
                 </div>
               )}
