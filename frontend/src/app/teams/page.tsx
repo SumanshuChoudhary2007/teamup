@@ -56,9 +56,14 @@ export default function AllTeamsPage() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748b]" />
-            <input value={search} onChange={e => setSearch(e.target.value)} className="input-field pl-11" placeholder="Search teams..." />
+          <div className="input-with-icon flex-1">
+            <Search className="input-icon input-icon-left w-5 h-5" />
+            <input 
+              value={search} 
+              onChange={e => setSearch(e.target.value)} 
+              className="input-field has-icon-left" 
+              placeholder="Search teams..." 
+            />
           </div>
           <button
             onClick={() => setShowFull(!showFull)}

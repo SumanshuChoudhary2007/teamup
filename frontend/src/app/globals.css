@@ -200,42 +200,50 @@ body {
   color: #64748b;
 }
 
-/* Icon-input helpers */
 .input-with-icon {
   position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
 }
 
 .input-with-icon .input-icon {
   position: absolute;
   color: #64748b;
-  transition: color 0.3s ease;
+  transition: all 0.3s ease;
   pointer-events: none;
   z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .input-with-icon .input-icon-left {
-  left: 1rem;
+  left: 1.25rem;
 }
 
 .input-with-icon .input-icon-right {
-  right: 1rem;
+  right: 1.25rem;
   pointer-events: auto;
   cursor: pointer;
 }
 
-.input-with-icon input {
+.input-with-icon input.input-field {
   padding-left: 1rem;
   padding-right: 1rem;
 }
 
-.input-with-icon input.has-icon-left {
-  padding-left: 2.75rem;
+.input-with-icon input.input-field.has-icon-left {
+  padding-left: 3.25rem;
 }
 
-.input-with-icon input.has-icon-right {
-  padding-right: 2.75rem;
+.input-with-icon input.input-field.has-icon-right {
+  padding-right: 3.25rem;
+}
+
+.input-with-icon input.input-field.has-icon-left.has-icon-right {
+  padding-left: 3.25rem;
+  padding-right: 3.25rem;
 }
 
 .input-with-icon:focus-within .input-icon {

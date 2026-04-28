@@ -48,26 +48,46 @@ export default function AdminPage() {
   // ... (handleCreateHackathon, deleteHackathon)
   const handleCreateHackathon = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      alert('You must be logged in to create a hackathon.');
+      return;
+    }
     setSaving(true);
     try {
       const { data, error } = await supabase.from('hackathons').insert({
-        title, description, date: date || null, end_date: endDate || null,
-        mode, location, prize, organizer, website_url: websiteUrl,
+        title, 
+        description, 
+        date: date || null, 
+        end_date: endDate || null,
+        mode, 
+        location, 
+        prize, 
+        organizer, 
+        website_url: websiteUrl,
         tags: tags.split(',').map(t => t.trim()).filter(Boolean),
-        created_by: user!.id,
+        created_by: user.id,
       }).select().single();
       
       if (error) {
         console.error('Error creating hackathon:', error);
-        alert(`Error: ${error.message}`);
-      } else if (data) {
-        setHackathons(prev => [...prev, data as Hackathon]);
+        alert(`Error creating hackathon: ${error.message}`);
+      } else {
+        setHackathons(prev => [data as Hackathon, ...prev]);
         setShowForm(false);
-        setTitle(''); setDescription(''); setDate(''); setEndDate(''); setLocation(''); setPrize(''); setOrganizer(''); setWebsiteUrl(''); setTags('');
+        // Reset form
+        setTitle(''); 
+        setDescription(''); 
+        setDate(''); 
+        setEndDate(''); 
+        setLocation(''); 
+        setPrize(''); 
+        setOrganizer(''); 
+        setWebsiteUrl(''); 
+        setTags('');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Unexpected error:', err);
-      alert('An unexpected error occurred.');
+      alert(`An unexpected error occurred: ${err.message || 'Unknown error'}`);
     } finally {
       setSaving(false);
     }
