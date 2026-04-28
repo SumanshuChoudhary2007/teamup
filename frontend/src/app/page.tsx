@@ -7,10 +7,10 @@ import { Zap, Users, Trophy, Rocket, ArrowRight, Globe, Shield, Code, Calendar, 
 
 export default function LandingPage() {
   const [counts, setCounts] = useState({
-    hackers: 0,
+    developers: 0,
     hackathons: 0,
     teams: 0,
-    countries: 12, // Still a bit of a placeholder, but we can't easily count countries without more data
+    countries: 12, 
   });
   const [recentHackathons, setRecentHackathons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,10 +30,10 @@ export default function LandingPage() {
       ]);
 
       setCounts({
-        hackers: hackers || 0,
+        developers: hackers || 0,
         hackathons: hackathons || 0,
         teams: teams || 0,
-        countries: 5, // Hardcoding a small real number or making it dynamic later
+        countries: 5, 
       });
       setRecentHackathons(latestHacks || []);
       setLoading(false);
@@ -43,12 +43,12 @@ export default function LandingPage() {
   }, []);
 
   const stats = [
-    { label: 'Active Hackers', value: counts.hackers.toLocaleString(), icon: Users },
+    { label: 'Active Developers', value: counts.developers.toLocaleString(), icon: Users },
     { label: 'Verified Hackathons', value: counts.hackathons.toLocaleString(), icon: Trophy },
     { label: 'Teams Formed', value: counts.teams.toLocaleString(), icon: Zap },
   ];
 
-  const hasData = counts.hackers > 0 || counts.hackathons > 0 || counts.teams > 0;
+  const hasData = counts.developers > 0 || counts.hackathons > 0 || counts.teams > 0;
 
   const features = [
     {
@@ -89,7 +89,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="text-lg sm:text-xl text-[#94a3b8] max-w-2xl mx-auto mb-10 leading-relaxed animate-slide-up" style={{ animationDelay: '0.2s' }}>
-            Stop hacking alone. TeamUp connects you with skilled developers, designers,
+            Stop building alone. TeamUp connects you with skilled developers, designers,
             and innovators to form unbeatable hackathon teams.
           </p>
 
@@ -180,7 +180,7 @@ export default function LandingPage() {
             </div>
             <span className="font-bold gradient-text">TeamUp</span>
           </div>
-          <p className="text-sm text-[#64748b]">© {new Date().getFullYear()} TeamUp. Real data. Real hackers.</p>
+          <p className="text-sm text-[#64748b]">© {new Date().getFullYear()} TeamUp. Real data. Real developers.</p>
         </div>
       </footer>
     </div>

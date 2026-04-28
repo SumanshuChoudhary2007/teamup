@@ -108,7 +108,7 @@ export default function Navbar() {
   const navLinks = [
     { href: '/hackathons', label: 'Hackathons', icon: Trophy },
     { href: '/teams', label: 'Teams', icon: Users },
-    { href: '/hackers', label: 'Hackers', icon: User },
+    { href: '/developers', label: 'Developers', icon: User },
   ];
 
   return (

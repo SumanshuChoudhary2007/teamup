@@ -5,7 +5,7 @@ import Navbar from "@/components/Navbar";
 
 export const metadata: Metadata = {
   title: "TeamUp — Find Your Dream Hackathon Team",
-  description: "The premier platform for hackers to discover hackathons, form teams, and build together. Find your perfect teammates based on skills, experience, and shared interests.",
+  description: "The premier platform for developers to discover hackathons, form teams, and build together. Find your perfect teammates based on skills, experience, and shared interests.",
   keywords: ["hackathon", "team formation", "developers", "coding", "teamup"],
 };
 

@@ -15,7 +15,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [myTeams, setMyTeams] = useState<Team[]>([]);
   const [suggestedTeams, setSuggestedTeams] = useState<(Team & { hackathon: Hackathon })[]>([]);
-  const [suggestedHackers, setSuggestedHackers] = useState<Profile[]>([]);
+  const [suggestedDevelopers, setSuggestedDevelopers] = useState<Profile[]>([]);
   const [myApps, setMyApps] = useState<(Application & { team: Team & { hackathon: Hackathon } })[]>([]);
   const [pendingApps, setPendingApps] = useState<(Application & { user: { name: string; skills: string[] }; team: { team_name: string } })[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,8 +79,8 @@ export default function DashboardPage() {
       const isLookingForMembers = profile?.looking_for === 'members';
 
       if (isLookingForMembers) {
-        // Find Hackers
-        let hackerMatches: any[] = [];
+        // Find Developers
+        let developerMatches: any[] = [];
         if (profile?.skills && profile.skills.length > 0) {
           const { data } = await supabase
             .from('profiles')
@@ -88,18 +88,18 @@ export default function DashboardPage() {
             .neq('id', user.id)
             .overlaps('skills', profile.skills)
             .limit(4);
-          hackerMatches = data || [];
+          developerMatches = data || [];
         }
-        if (hackerMatches.length === 0) {
+        if (developerMatches.length === 0) {
           const { data } = await supabase
             .from('profiles')
             .select('*')
             .neq('id', user.id)
             .limit(4)
             .order('created_at', { ascending: false });
-          hackerMatches = data || [];
+          developerMatches = data || [];
         }
-        setSuggestedHackers(hackerMatches);
+        setSuggestedDevelopers(developerMatches);
         setSuggestedTeams([]);
       } else {
         // Find Teams
@@ -133,9 +133,9 @@ export default function DashboardPage() {
             .select('*')
             .neq('id', user.id)
             .limit(4);
-          setSuggestedHackers(data || []);
+          setSuggestedDevelopers(data || []);
         } else {
-          setSuggestedHackers([]);
+          setSuggestedDevelopers([]);
         }
       }
 
@@ -240,9 +240,9 @@ export default function DashboardPage() {
           <div>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                {suggestedTeams.length > 0 ? <><Zap className="w-6 h-6 text-amber-400" /> Top Team Matches</> : <><Users className="w-6 h-6 text-[#22d3ee]" /> Recommended Hackers</>}
+                {suggestedTeams.length > 0 ? <><Zap className="w-6 h-6 text-amber-400" /> Top Team Matches</> : <><Users className="w-6 h-6 text-[#22d3ee]" /> Recommended Developers</>}
               </h2>
-              <Link href={suggestedTeams.length > 0 ? "/teams" : "/hackers"} className="text-[#a78bfa] hover:text-white flex items-center gap-1 font-medium transition-all group">
+              <Link href={suggestedTeams.length > 0 ? "/teams" : "/developers"} className="text-[#a78bfa] hover:text-white flex items-center gap-1 font-medium transition-all group">
                 Browse more <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
@@ -274,14 +274,14 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                {suggestedHackers.map((hacker) => (
-                  <div key={hacker.id} className="glass rounded-3xl p-6 border border-white/5 text-center group hover:bg-white/[0.03] transition-all">
+                {suggestedDevelopers.map((developer) => (
+                  <div key={developer.id} className="glass rounded-3xl p-6 border border-white/5 text-center group hover:bg-white/[0.03] transition-all">
                     <div className="w-16 h-16 rounded-2xl gradient-bg mx-auto mb-4 flex items-center justify-center text-white text-xl font-bold group-hover:scale-110 transition-transform shadow-xl shadow-black/20">
-                      {hacker.name?.charAt(0).toUpperCase()}
+                      {developer.name?.charAt(0).toUpperCase()}
                     </div>
-                    <h3 className="font-bold text-white mb-1">{hacker.name}</h3>
-                    <p className="text-[10px] text-[#64748b] uppercase tracking-tighter mb-4 line-clamp-1">{hacker.skills?.join(' • ')}</p>
-                    <Link href={`/profile/${hacker.id}`} className="text-xs font-bold text-[#a78bfa] hover:text-white transition-colors">
+                    <h3 className="font-bold text-white mb-1">{developer.name}</h3>
+                    <p className="text-[10px] text-[#64748b] uppercase tracking-tighter mb-4 line-clamp-1">{developer.skills?.join(' • ')}</p>
+                    <Link href={`/profile/${developer.id}`} className="text-xs font-bold text-[#a78bfa] hover:text-white transition-colors">
                       View Profile →
                     </Link>
                   </div>

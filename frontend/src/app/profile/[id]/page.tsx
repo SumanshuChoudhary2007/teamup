@@ -184,7 +184,7 @@ export default function PublicProfilePage() {
                 {profile.looking_for === 'members' ? 'Team Vision' : 'About Me'}
               </h2>
               <p className="text-[#94a3b8] leading-relaxed text-lg whitespace-pre-wrap">
-                {profile.bio || "No description provided yet. This hacker is busy building the future!"}
+                {profile.bio || "No description provided yet. This developer is busy building the future!"}
               </p>
             </div>
 
