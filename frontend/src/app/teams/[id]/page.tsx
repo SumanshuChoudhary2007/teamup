@@ -508,7 +508,6 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
             </div>
           )}
         </div>
-        </div>
       </div>
     </div>
   );
