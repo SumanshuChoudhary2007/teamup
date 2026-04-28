@@ -98,6 +98,48 @@ export default function TeamChat({ teamId, userId, leaderId }: { teamId: string,
     if (error) {
       console.error('Error sending message:', error);
       alert('Failed to send message');
+    } else {
+      // Send notifications to all team members except sender
+      try {
+        // 1. Get all accepted members
+        const { data: apps } = await supabase
+          .from('applications')
+          .select('user_id')
+          .eq('team_id', teamId)
+          .eq('status', 'accepted');
+        
+        // 2. Get team leader
+        const { data: team } = await supabase
+          .from('teams')
+          .select('created_by, team_name')
+          .eq('id', teamId)
+          .single();
+
+        if (team) {
+          const recipientIds = new Set([
+            ...(apps?.map(a => a.user_id) || []),
+            team.created_by
+          ]);
+          
+          // Remove sender
+          recipientIds.delete(userId);
+
+          // 3. Create notifications
+          const notifications = Array.from(recipientIds).map(recipientId => ({
+            recipient_id: recipientId,
+            type: 'team_chat',
+            title: `New message in ${team.team_name}`,
+            message: content.length > 50 ? `${content.substring(0, 50)}...` : content,
+            link: `/teams/${teamId}`
+          }));
+
+          if (notifications.length > 0) {
+            await supabase.from('notifications').insert(notifications);
+          }
+        }
+      } catch (err) {
+        console.error('Error sending chat notifications:', err);
+      }
     }
   };
 

@@ -4,13 +4,14 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { supabase, type Notification } from '@/lib/supabase';
-import { Bell, CheckCheck, CheckCircle, XCircle, Users, Trophy, Info } from 'lucide-react';
+import { Bell, CheckCheck, CheckCircle, XCircle, Users, Trophy, Info, Trash2, MessageSquare } from 'lucide-react';
 
 const typeIcon = (type: string) => {
   if (type.includes('accept')) return <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />;
   if (type.includes('reject')) return <XCircle className="w-5 h-5 text-red-400 shrink-0" />;
   if (type.includes('application')) return <Users className="w-5 h-5 text-[#a78bfa] shrink-0" />;
   if (type.includes('hackathon')) return <Trophy className="w-5 h-5 text-amber-400 shrink-0" />;
+  if (type.includes('chat')) return <MessageSquare className="w-5 h-5 text-[#22d3ee] shrink-0" />;
   return <Info className="w-5 h-5 text-[#22d3ee] shrink-0" />;
 };
 
@@ -50,6 +51,12 @@ export default function NotificationsPage() {
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
   };
 
+  const clearAll = async () => {
+    if (!user || !confirm('Are you sure you want to delete all notifications?')) return;
+    await supabase.from('notifications').delete().eq('recipient_id', user.id);
+    setNotifs([]);
+  };
+
   const unread = notifs.filter(n => !n.is_read).length;
 
   if (authLoading) return <div className="min-h-screen pt-20 flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" /></div>;
@@ -63,9 +70,14 @@ export default function NotificationsPage() {
             <h1 className="text-3xl font-bold text-white flex items-center gap-3"><Bell className="w-8 h-8 text-[#a78bfa]" /> Notifications</h1>
             {unread > 0 && <p className="text-sm text-[#94a3b8] mt-1">{unread} unread</p>}
           </div>
-          {unread > 0 && (
-            <button onClick={markAllRead} className="btn-secondary flex items-center gap-2 text-sm"><CheckCheck className="w-4 h-4" /> Mark all read</button>
-          )}
+          <div className="flex gap-2">
+            {unread > 0 && (
+              <button onClick={markAllRead} className="btn-secondary flex items-center gap-2 text-sm"><CheckCheck className="w-4 h-4" /> Mark all read</button>
+            )}
+            {notifs.length > 0 && (
+              <button onClick={clearAll} className="p-2.5 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all" title="Clear all notifications"><Trash2 className="w-5 h-5" /></button>
+            )}
+          </div>
         </div>
         {loading ? (
           <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" /></div>
