@@ -184,20 +184,10 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
 
     setActionLoading('leaving');
     try {
-      // Delete application
-      const { error } = await supabase
-        .from('applications')
-        .delete()
-        .eq('team_id', id)
-        .eq('user_id', user.id);
+      // Use RPC for atomic leave operation
+      const { error } = await supabase.rpc('leave_team_rpc', { team_id_input: id });
 
       if (error) throw error;
-
-      // Decrement count
-      await supabase.rpc('decrement_team_members', { team_id_input: id });
-
-      // Update profile status back to 'team'
-      await supabase.from('profiles').update({ looking_for: 'team' }).eq('id', user.id);
 
       // Notify Leader
       await sendNotification(
@@ -221,20 +211,13 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
 
     setActionLoading(memberId);
     try {
-      // Delete application
-      const { error } = await supabase
-        .from('applications')
-        .delete()
-        .eq('team_id', id)
-        .eq('user_id', memberId);
+      // Use RPC for atomic remove operation
+      const { error } = await supabase.rpc('remove_team_member_rpc', { 
+        team_id_input: id,
+        user_id_input: memberId
+      });
 
       if (error) throw error;
-
-      // Decrement count
-      await supabase.rpc('decrement_team_members', { team_id_input: id });
-
-      // Update profile status back to 'team'
-      await supabase.from('profiles').update({ looking_for: 'team' }).eq('id', memberId);
 
       // Notify Member
       await sendNotification(
