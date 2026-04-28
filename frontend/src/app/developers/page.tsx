@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase, type Profile } from '@/lib/supabase';
 import { Users, Search, Code, MapPin, ExternalLink, Globe, User, Shield, Sparkles } from 'lucide-react';
-import { DeveloperSkeleton } from '@/components/Skeleton';
+import { DeveloperSkeleton, Skeleton } from '@/components/Skeleton';
 
 export default function AllDevelopersPage() {
   const [developers, setDevelopers] = useState<Profile[]>([]);

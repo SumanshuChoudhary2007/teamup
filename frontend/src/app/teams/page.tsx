@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { supabase, type Team } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { Users, Search, Filter, UserCheck, Code, ArrowRight, Trophy, Plus } from 'lucide-react';
-import { TeamSkeleton } from '@/components/Skeleton';
+import { TeamSkeleton, Skeleton } from '@/components/Skeleton';
 
 export default function AllTeamsPage() {
   const { profile } = useAuth();

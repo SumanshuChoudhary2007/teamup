@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase, type Hackathon } from '@/lib/supabase';
 import { Trophy, Calendar, MapPin, Globe, Search, Filter, Users, ArrowRight, Wifi, Building2 } from 'lucide-react';
-import { HackathonSkeleton } from '@/components/Skeleton';
+import { HackathonSkeleton, Skeleton } from '@/components/Skeleton';
 
 export default function HackathonsPage() {
   const [hackathons, setHackathons] = useState<Hackathon[]>([]);
