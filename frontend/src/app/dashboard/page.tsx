@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase, type Team, type Application, type Hackathon, type Profile } from '@/lib/supabase';
 import {
   LayoutDashboard, Trophy, Users, FileText, Plus, Clock,
-  CheckCircle, XCircle, ArrowRight, Zap, UserCheck, AlertCircle, User
+  CheckCircle, XCircle, ArrowRight, Zap, UserCheck, AlertCircle, User, Sparkles
 } from 'lucide-react';
 import { DashboardSkeleton } from '@/components/Skeleton';
 
