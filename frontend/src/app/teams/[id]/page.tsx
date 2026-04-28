@@ -8,7 +8,7 @@ import { supabase, type Team, type Application, type Hackathon, type Profile } f
 import { 
   Users, Trophy, Globe, Code, Calendar, ArrowLeft, 
   CheckCircle, XCircle, Clock, Shield, User, MessageSquare,
-  AlertCircle, Star, Zap, FileText
+  AlertCircle, Star, Zap, FileText, Pencil, Check, X as XIcon
 } from 'lucide-react';
 import TeamChat from '@/components/TeamChat';
 
@@ -25,6 +25,12 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [applyMessage, setApplyMessage] = useState('');
   const [showApplyForm, setShowApplyForm] = useState(false);
+  // Edit state
+  const [editingName, setEditingName] = useState(false);
+  const [editingHackathon, setEditingHackathon] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const [editedHackathonId, setEditedHackathonId] = useState('');
+  const [allHackathons, setAllHackathons] = useState<Hackathon[]>([]);
 
   useEffect(() => {
     const loadTeam = async () => {
@@ -87,6 +93,10 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
     };
 
     loadTeam();
+    // Fetch all hackathons for the edit dropdown
+    supabase.from('hackathons').select('*').order('date', { ascending: true }).then(({ data }) => {
+      setAllHackathons((data || []) as Hackathon[]);
+    });
   }, [id, user, router]);
 
   const sendNotification = async (recipientId: string, type: string, title: string, message: string) => {
@@ -296,6 +306,25 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
     }
   };
 
+  const saveTeamEdits = async (field: 'team_name' | 'hackathon_id') => {
+    if (!team) return;
+    if (field === 'team_name') {
+      const trimmed = editedName.trim();
+      if (!trimmed) return;
+      const { error } = await supabase.from('teams').update({ team_name: trimmed }).eq('id', team.id);
+      if (!error) { setTeam(prev => prev ? { ...prev, team_name: trimmed } : prev); }
+      setEditingName(false);
+    } else {
+      const { data: h, error } = await supabase
+        .from('hackathons').select('*').eq('id', editedHackathonId).single();
+      if (!error && h) {
+        await supabase.from('teams').update({ hackathon_id: editedHackathonId }).eq('id', team.id);
+        setTeam(prev => prev ? { ...prev, hackathon_id: editedHackathonId, hackathon: h as Hackathon } : prev);
+      }
+      setEditingHackathon(false);
+    }
+  };
+
   if (loading) return (
     <div className="min-h-screen pt-20 flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" />
@@ -340,14 +369,65 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
               </span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl font-black text-white mb-4 leading-tight">
-              {team.team_name}
-            </h1>
-            
-            <Link href={`/hackathons`} className="inline-flex items-center gap-2 text-[#a78bfa] hover:text-[#c084fc] transition-colors mb-8 bg-[#a78bfa]/5 px-4 py-2 rounded-xl border border-[#a78bfa]/10">
-              <Trophy className="w-4 h-4" />
-              {team.hackathon?.title}
-            </Link>
+            {/* Team Name */}
+            {editingName && (isLeader || profile?.is_admin) ? (
+              <div className="flex items-center gap-2 mb-4">
+                <input
+                  autoFocus
+                  value={editedName}
+                  onChange={e => setEditedName(e.target.value)}
+                  className="text-3xl sm:text-4xl font-black bg-white/5 border border-[#7c3aed]/40 rounded-xl px-4 py-2 text-white outline-none flex-1"
+                />
+                <button onClick={() => saveTeamEdits('team_name')} className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors"><Check className="w-5 h-5" /></button>
+                <button onClick={() => setEditingName(false)} className="p-2 rounded-xl bg-white/5 text-[#94a3b8] hover:bg-white/10 transition-colors"><XIcon className="w-5 h-5" /></button>
+              </div>
+            ) : (
+              <div className="flex items-start gap-3 mb-4 group/name">
+                <h1 className="text-4xl sm:text-5xl font-black text-white leading-tight">
+                  {team.team_name}
+                </h1>
+                {(isLeader || profile?.is_admin) && (
+                  <button
+                    onClick={() => { setEditedName(team.team_name); setEditingName(true); }}
+                    className="mt-2 p-1.5 rounded-lg bg-white/5 text-[#64748b] hover:text-white hover:bg-white/10 transition-all opacity-0 group-hover/name:opacity-100"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Hackathon */}
+            {editingHackathon && (isLeader || profile?.is_admin) ? (
+              <div className="flex items-center gap-2 mb-8">
+                <select
+                  value={editedHackathonId}
+                  onChange={e => setEditedHackathonId(e.target.value)}
+                  className="flex-1 bg-[#1e1b2e] border border-[#7c3aed]/40 rounded-xl px-4 py-2 text-white outline-none"
+                >
+                  {allHackathons.map(h => (
+                    <option key={h.id} value={h.id} style={{ background: '#1e1b2e' }}>{h.title}</option>
+                  ))}
+                </select>
+                <button onClick={() => saveTeamEdits('hackathon_id')} className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors"><Check className="w-5 h-5" /></button>
+                <button onClick={() => setEditingHackathon(false)} className="p-2 rounded-xl bg-white/5 text-[#94a3b8] hover:bg-white/10 transition-colors"><XIcon className="w-5 h-5" /></button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mb-8 group/hack">
+                <Link href={`/hackathons`} className="inline-flex items-center gap-2 text-[#a78bfa] hover:text-[#c084fc] transition-colors bg-[#a78bfa]/5 px-4 py-2 rounded-xl border border-[#a78bfa]/10">
+                  <Trophy className="w-4 h-4" />
+                  {team.hackathon?.title}
+                </Link>
+                {(isLeader || profile?.is_admin) && (
+                  <button
+                    onClick={() => { setEditedHackathonId(team.hackathon_id || ''); setEditingHackathon(true); }}
+                    className="p-1.5 rounded-lg bg-white/5 text-[#64748b] hover:text-white hover:bg-white/10 transition-all opacity-0 group-hover/hack:opacity-100"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            )}
 
             <div className="space-y-6">
               <div>
