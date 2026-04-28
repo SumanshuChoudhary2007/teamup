@@ -254,12 +254,14 @@ export default function AdminPage() {
                       <h3 className="font-semibold text-white group-hover:text-[#a78bfa] transition-colors flex-1">{h.title}</h3>
                       <div className="flex items-center gap-1 shrink-0">
                         <ExternalLink className="w-4 h-4 text-[#64748b] group-hover:text-[#a78bfa] transition-colors" />
-                        <button
-                          onClick={e => { e.preventDefault(); e.stopPropagation(); deleteHackathon(h.id); }}
-                          className="p-1.5 rounded-lg hover:bg-red-400/10 text-red-400"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {h.created_by === user?.id && (
+                          <button
+                            onClick={e => { e.preventDefault(); e.stopPropagation(); deleteHackathon(h.id); }}
+                            className="p-1.5 rounded-lg hover:bg-red-400/10 text-red-400"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                     <p className="text-xs text-[#94a3b8] mb-2">{h.organizer}</p>
