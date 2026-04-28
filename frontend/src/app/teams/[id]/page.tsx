@@ -337,20 +337,20 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
             <div className="grid sm:grid-cols-2 gap-4">
               {members.map((member) => (
                 <div key={member.id} className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between group hover:bg-white/[0.08] transition-all">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#7c3aed]/20 to-[#06b6d4]/20 flex items-center justify-center text-[#a78bfa] font-bold text-lg ring-1 ring-white/10">
+                  <Link href={`/profile/${member.id}`} className="flex items-center gap-4 flex-1">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#7c3aed]/20 to-[#06b6d4]/20 flex items-center justify-center text-[#a78bfa] font-bold text-lg ring-1 ring-white/10 group-hover:scale-105 transition-transform">
                       {member.name?.[0] || 'U'}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="text-white font-semibold">{member.name}</p>
+                        <p className="text-white font-semibold group-hover:text-[#a78bfa] transition-colors">{member.name}</p>
                         {member.id === team.created_by && (
                           <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 font-bold uppercase tracking-tighter">Leader</span>
                         )}
                       </div>
                       <p className="text-xs text-[#64748b] line-clamp-1">{member.skills?.join(' • ') || 'No skills listed'}</p>
                     </div>
-                  </div>
+                  </Link>
                   {isLeader && member.id !== user?.id && (
                     <button 
                       onClick={() => removeMember(member.id, member.name || 'Member')}
@@ -464,15 +464,15 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                 <div className="space-y-4">
                   {applications.map((app) => (
                     <div key={app.id} className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white font-bold">
+                      <Link href={`/profile/${app.user_id}`} className="flex items-center gap-3 group/user flex-1">
+                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white font-bold group-hover/user:scale-105 transition-transform">
                           {app.user.name?.[0]}
                         </div>
                         <div>
-                          <p className="text-white font-medium text-sm">{app.user.name}</p>
+                          <p className="text-white font-medium text-sm group-hover/user:text-[#a78bfa] transition-colors">{app.user.name}</p>
                           <p className="text-xs text-[#64748b] line-clamp-1">{app.user.skills?.join(', ') || 'No skills listed'}</p>
                         </div>
-                      </div>
+                      </Link>
                       
                       <div className="bg-black/20 p-3 rounded-xl border border-white/5">
                         <p className="text-xs text-[#94a3b8] italic">"{app.message || 'No message provided'}"</p>
