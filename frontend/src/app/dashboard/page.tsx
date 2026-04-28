@@ -21,8 +21,16 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!authLoading && !user) router.push('/login');
-  }, [authLoading, user, router]);
+    if (!authLoading && !user) {
+      router.push('/login');
+      return;
+    }
+
+    // Redirect admin to admin dashboard
+    if (profile?.is_admin) {
+      router.push('/admin');
+    }
+  }, [authLoading, user, profile, router]);
 
   useEffect(() => {
     if (!user) return;
