@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
+import NotificationToast from "@/components/NotificationToast";
 
 export const metadata: Metadata = {
   title: "TeamUp — Find Your Dream Hackathon Team",
@@ -20,6 +21,7 @@ export default function RootLayout({
         <AuthProvider>
           <Navbar />
           <main className="flex-1">{children}</main>
+          <NotificationToast />
         </AuthProvider>
       </body>
     </html>
