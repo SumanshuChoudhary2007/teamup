@@ -30,16 +30,26 @@ export default function AdminTeamDetailPage() {
         .eq('id', id)
         .single();
 
-      // Fetch all accepted members (excluding leader who is already in creator)
+      // Step 1: Get accepted user_ids from applications
       const { data: apps } = await supabase
         .from('applications')
-        .select('user:profiles(id, name, email)')
+        .select('user_id')
         .eq('team_id', id)
         .eq('status', 'accepted');
 
-      const acceptedMembers = apps?.map(a => a.user).filter(Boolean) || [];
+      const memberIds = apps?.map(a => a.user_id).filter(Boolean) || [];
 
-      // Combine leader + members, deduplicate
+      // Step 2: Fetch profiles for those user_ids
+      let acceptedMembers: any[] = [];
+      if (memberIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, name, email')
+          .in('id', memberIds);
+        acceptedMembers = profilesData || [];
+      }
+
+      // Combine leader + accepted members, deduplicate by id
       const allMembers: any[] = [];
       if (teamData?.creator) {
         allMembers.push({ ...teamData.creator, isLeader: true });
