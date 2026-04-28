@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { supabase, type Profile } from '@/lib/supabase';
-import { User, Mail, Globe, Save, Zap, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
+import { User, Mail, Globe, Save, Zap, ArrowLeft, Loader2, CheckCircle2, Users } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ProfilePage() {
