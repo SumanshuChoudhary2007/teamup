@@ -53,8 +53,13 @@ export default function NotificationsPage() {
 
   const clearAll = async () => {
     if (!user || !confirm('Are you sure you want to delete all notifications?')) return;
-    await supabase.from('notifications').delete().eq('recipient_id', user.id);
-    setNotifs([]);
+    const { error } = await supabase.from('notifications').delete().eq('recipient_id', user.id);
+    if (error) {
+      console.error('Error clearing notifications:', error);
+      alert('Failed to clear notifications. Please try again.');
+    } else {
+      setNotifs([]);
+    }
   };
 
   const unread = notifs.filter(n => !n.is_read).length;
