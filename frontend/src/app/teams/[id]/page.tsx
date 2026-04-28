@@ -28,8 +28,10 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   // Edit state
   const [editingName, setEditingName] = useState(false);
   const [editingHackathon, setEditingHackathon] = useState(false);
+  const [editingProjectIdea, setEditingProjectIdea] = useState(false);
   const [editedName, setEditedName] = useState('');
   const [editedHackathonId, setEditedHackathonId] = useState('');
+  const [editedProjectIdea, setEditedProjectIdea] = useState('');
   const [allHackathons, setAllHackathons] = useState<Hackathon[]>([]);
 
   useEffect(() => {
@@ -306,7 +308,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
     }
   };
 
-  const saveTeamEdits = async (field: 'team_name' | 'hackathon_id') => {
+  const saveTeamEdits = async (field: 'team_name' | 'hackathon_id' | 'project_idea') => {
     if (!team) return;
     if (field === 'team_name') {
       const trimmed = editedName.trim();
@@ -314,6 +316,12 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
       const { error } = await supabase.from('teams').update({ team_name: trimmed }).eq('id', team.id);
       if (!error) { setTeam(prev => prev ? { ...prev, team_name: trimmed } : prev); }
       setEditingName(false);
+    } else if (field === 'project_idea') {
+      const trimmed = editedProjectIdea.trim();
+      if (!trimmed) return;
+      const { error } = await supabase.from('teams').update({ project_idea: trimmed }).eq('id', team.id);
+      if (!error) { setTeam(prev => prev ? { ...prev, project_idea: trimmed } : prev); }
+      setEditingProjectIdea(false);
     } else {
       const { data: h, error } = await supabase
         .from('hackathons').select('*').eq('id', editedHackathonId).single();
@@ -418,7 +426,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                   <Trophy className="w-4 h-4" />
                   {team.hackathon?.title}
                 </Link>
-                {(isLeader || profile?.is_admin) && (
+                {(profile?.is_admin) && (
                   <button
                     onClick={() => { setEditedHackathonId(team.hackathon_id || ''); setEditingHackathon(true); }}
                     className="p-1.5 rounded-lg bg-white/5 text-[#64748b] hover:text-white hover:bg-white/10 transition-all opacity-0 group-hover/hack:opacity-100"
@@ -433,10 +441,34 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
               <div>
                 <h3 className="text-sm font-bold text-[#64748b] uppercase tracking-widest mb-3 flex items-center gap-2">
                   <Star className="w-4 h-4 text-amber-400" /> Project Idea
+                  {(isLeader || profile?.is_admin) && !editingProjectIdea && (
+                    <button
+                      onClick={() => { setEditedProjectIdea(team.project_idea || ''); setEditingProjectIdea(true); }}
+                      className="ml-1 p-1 rounded-lg bg-white/5 text-[#64748b] hover:text-white hover:bg-white/10 transition-all"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  )}
                 </h3>
-                <p className="text-xl text-white font-medium leading-relaxed">
-                  {team.project_idea || 'Working on an innovative project...'}
-                </p>
+                {editingProjectIdea && (isLeader || profile?.is_admin) ? (
+                  <div className="space-y-2">
+                    <textarea
+                      autoFocus
+                      value={editedProjectIdea}
+                      onChange={e => setEditedProjectIdea(e.target.value)}
+                      rows={3}
+                      className="w-full bg-white/5 border border-[#7c3aed]/40 rounded-xl px-4 py-3 text-white outline-none resize-none text-lg"
+                    />
+                    <div className="flex gap-2">
+                      <button onClick={() => saveTeamEdits('project_idea')} className="px-4 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 text-sm font-bold transition-colors flex items-center gap-1"><Check className="w-4 h-4" /> Save</button>
+                      <button onClick={() => setEditingProjectIdea(false)} className="px-4 py-1.5 rounded-xl bg-white/5 text-[#94a3b8] hover:bg-white/10 text-sm font-bold transition-colors">Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xl text-white font-medium leading-relaxed">
+                    {team.project_idea || 'Working on an innovative project...'}
+                  </p>
+                )}
               </div>
 
               {team.description && (
