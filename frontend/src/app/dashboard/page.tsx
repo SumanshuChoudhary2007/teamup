@@ -98,6 +98,7 @@ export default function DashboardPage() {
             .from('profiles')
             .select('*')
             .neq('id', user.id)
+            .eq('is_admin', false)
             .overlaps('skills', profile.skills)
             .limit(4);
           developerMatches = data || [];
@@ -107,6 +108,7 @@ export default function DashboardPage() {
             .from('profiles')
             .select('*')
             .neq('id', user.id)
+            .eq('is_admin', false)
             .limit(4)
             .order('created_at', { ascending: false });
           developerMatches = data || [];
