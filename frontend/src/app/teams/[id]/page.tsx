@@ -422,11 +422,36 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
               )}
 
               {myApplication && !isMember && (
-                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center">
-                  <div className="flex items-center justify-center gap-2 text-amber-400 font-bold mb-1">
-                    <Clock className="w-4 h-4" /> Application Pending
+                <div className={`p-4 rounded-2xl border text-center ${
+                  myApplication.status === 'rejected' 
+                    ? 'bg-red-500/10 border-red-500/20' 
+                    : 'bg-amber-500/10 border-amber-500/20'
+                }`}>
+                  <div className={`flex items-center justify-center gap-2 font-bold mb-1 ${
+                    myApplication.status === 'rejected' ? 'text-red-400' : 'text-amber-400'
+                  }`}>
+                    {myApplication.status === 'rejected' ? (
+                      <><XCircle className="w-4 h-4" /> Application Rejected</>
+                    ) : (
+                      <><Clock className="w-4 h-4" /> Application Pending</>
+                    )}
                   </div>
-                  <p className="text-xs text-[#94a3b8]">The team leader is reviewing your request.</p>
+                  <p className="text-xs text-[#94a3b8]">
+                    {myApplication.status === 'rejected' 
+                      ? 'The team leader has rejected your application.' 
+                      : 'The team leader is reviewing your request.'}
+                  </p>
+                  {myApplication.status === 'rejected' && (
+                    <button 
+                      onClick={async () => {
+                        await supabase.from('applications').delete().eq('id', myApplication.id);
+                        setMyApplication(null);
+                      }}
+                      className="mt-3 text-[10px] font-bold text-[#a78bfa] uppercase tracking-widest hover:text-white transition-colors"
+                    >
+                      Try Applying Again?
+                    </button>
+                  )}
                 </div>
               )}
 
