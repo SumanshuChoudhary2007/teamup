@@ -180,7 +180,7 @@ export default function DashboardPage() {
       {isProfileIncomplete && (
         <div className="relative z-10 mb-8 animate-slide-up">
           <div className="glass-strong border-amber-500/20 p-6 rounded-3xl flex flex-col md:flex-row items-center gap-6 shadow-2xl shadow-amber-500/5 overflow-hidden relative">
-            <div className="absolute top-0 right-0 p-4 opacity-5">
+            <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
               <Zap className="w-32 h-32 text-amber-400" />
             </div>
             <div className="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-400 shrink-0">

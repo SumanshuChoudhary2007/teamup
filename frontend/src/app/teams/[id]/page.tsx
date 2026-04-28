@@ -266,7 +266,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
         {/* Left Column: Team Details */}
         <div className="lg:col-span-2 space-y-8">
           <div className="glass rounded-3xl p-8 border border-white/10 shadow-2xl overflow-hidden relative">
-            <div className="absolute top-0 right-0 p-6 opacity-10">
+            <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
               <Shield className="w-32 h-32" />
             </div>
             
