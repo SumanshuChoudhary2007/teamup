@@ -86,6 +86,20 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
     loadTeam();
   }, [id, user, router]);
 
+  const sendNotification = async (recipientId: string, type: string, title: string, message: string) => {
+    try {
+      await supabase.from('notifications').insert({
+        recipient_id: recipientId,
+        type,
+        title,
+        message,
+        is_read: false
+      });
+    } catch (err) {
+      console.error('Notification error:', err);
+    }
+  };
+
   const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !team || myApplication) return;
@@ -106,6 +120,15 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
       if (error) throw error;
       setMyApplication(data);
       setShowApplyForm(false);
+
+      // Notify Leader
+      await sendNotification(
+        team.created_by,
+        'application',
+        'New Application',
+        `${profile?.name || 'Someone'} applied to join ${team.team_name}`
+      );
+
       alert('Application sent successfully!');
     } catch (err: any) {
       console.error('Error applying:', err);
@@ -136,12 +159,94 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
         // Remove user from developers list by updating their status
         if (app?.user_id) {
           await supabase.from('profiles').update({ looking_for: 'none' }).eq('id', app.user_id);
+          
+          // Notify Member
+          await sendNotification(
+            app.user_id,
+            'application_accepted',
+            'Application Accepted!',
+            `Congratulations! You are now a member of ${team?.team_name}`
+          );
         }
       }
 
       setApplications(prev => prev.filter(a => a.id !== appId));
     } catch (err) {
       console.error('Error updating application:', err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const leaveTeam = async () => {
+    if (!user || !team || isLeader) return;
+    if (!confirm('Are you sure you want to leave this team?')) return;
+
+    setActionLoading('leaving');
+    try {
+      // Delete application
+      const { error } = await supabase
+        .from('applications')
+        .delete()
+        .eq('team_id', id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Decrement count
+      await supabase.rpc('decrement_team_members', { team_id_input: id });
+
+      // Update profile status back to 'team'
+      await supabase.from('profiles').update({ looking_for: 'team' }).eq('id', user.id);
+
+      // Notify Leader
+      await sendNotification(
+        team.created_by,
+        'member_left',
+        'Member Left',
+        `${profile?.name || 'A member'} has left your team ${team.team_name}`
+      );
+
+      window.location.reload();
+    } catch (err) {
+      console.error('Error leaving team:', err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const removeMember = async (memberId: string, memberName: string) => {
+    if (!user || !team || !isLeader || memberId === user.id) return;
+    if (!confirm(`Are you sure you want to remove ${memberName} from the team?`)) return;
+
+    setActionLoading(memberId);
+    try {
+      // Delete application
+      const { error } = await supabase
+        .from('applications')
+        .delete()
+        .eq('team_id', id)
+        .eq('user_id', memberId);
+
+      if (error) throw error;
+
+      // Decrement count
+      await supabase.rpc('decrement_team_members', { team_id_input: id });
+
+      // Update profile status back to 'team'
+      await supabase.from('profiles').update({ looking_for: 'team' }).eq('id', memberId);
+
+      // Notify Member
+      await sendNotification(
+        memberId,
+        'member_removed',
+        'Removed from Team',
+        `You have been removed from the team ${team.team_name}`
+      );
+
+      setMembers(prev => prev.filter(m => m.id !== memberId));
+    } catch (err) {
+      console.error('Error removing member:', err);
     } finally {
       setActionLoading(null);
     }
@@ -246,19 +351,30 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
             </h2>
             <div className="grid sm:grid-cols-2 gap-4">
               {members.map((member) => (
-                <div key={member.id} className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center gap-4 group hover:bg-white/[0.08] transition-all">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#7c3aed]/20 to-[#06b6d4]/20 flex items-center justify-center text-[#a78bfa] font-bold text-lg ring-1 ring-white/10">
-                    {member.name?.[0] || 'U'}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="text-white font-semibold">{member.name}</p>
-                      {member.id === team.created_by && (
-                        <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 font-bold uppercase tracking-tighter">Leader</span>
-                      )}
+                <div key={member.id} className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between group hover:bg-white/[0.08] transition-all">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#7c3aed]/20 to-[#06b6d4]/20 flex items-center justify-center text-[#a78bfa] font-bold text-lg ring-1 ring-white/10">
+                      {member.name?.[0] || 'U'}
                     </div>
-                    <p className="text-xs text-[#64748b] line-clamp-1">{member.skills?.join(' • ') || 'No skills listed'}</p>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-white font-semibold">{member.name}</p>
+                        {member.id === team.created_by && (
+                          <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 font-bold uppercase tracking-tighter">Leader</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-[#64748b] line-clamp-1">{member.skills?.join(' • ') || 'No skills listed'}</p>
+                    </div>
                   </div>
+                  {isLeader && member.id !== user?.id && (
+                    <button 
+                      onClick={() => removeMember(member.id, member.name || 'Member')}
+                      disabled={!!actionLoading}
+                      className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                    >
+                      <XCircle className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -327,6 +443,16 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                   </div>
                   <p className="text-xs text-[#94a3b8]">The team leader is reviewing your request.</p>
                 </div>
+              )}
+
+              {isMember && !isLeader && (
+                <button 
+                  onClick={leaveTeam}
+                  disabled={actionLoading === 'leaving'}
+                  className="w-full py-4 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all flex items-center justify-center gap-2 text-sm font-bold"
+                >
+                  {actionLoading === 'leaving' ? <div className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" /> : <><ArrowLeft className="w-4 h-4" /> Leave Team</>}
+                </button>
               )}
 
               {isMember && (
