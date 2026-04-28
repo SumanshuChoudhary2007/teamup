@@ -376,7 +376,7 @@ export default function DashboardPage() {
                   <div key={invite.id} className="bg-[#1e1b2e] border border-white/10 rounded-2xl p-5 space-y-4 relative z-10 group hover:border-[#7c3aed]/50 transition-all">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-bold text-white mb-1 group-hover:text-[#a78bfa] transition-colors">{invite.team.team_name}</h3>
+                        <Link href={`/teams/${invite.team_id}`} className="font-bold text-white mb-1 hover:text-[#a78bfa] transition-colors block">{invite.team.team_name}</Link>
                         <p className="text-[10px] text-[#64748b] uppercase font-black tracking-widest">{invite.team.hackathon?.title}</p>
                       </div>
                       <span className="px-2 py-1 rounded-lg bg-[#7c3aed]/10 text-[#a78bfa] text-[10px] font-bold">INVITED</span>
