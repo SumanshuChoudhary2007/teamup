@@ -198,8 +198,9 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
       );
 
       window.location.reload();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error leaving team:', err);
+      alert(`Failed to leave team: ${err.message || 'Unknown error'}`);
     } finally {
       setActionLoading(null);
     }
@@ -228,8 +229,9 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
       );
 
       setMembers(prev => prev.filter(m => m.id !== memberId));
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error removing member:', err);
+      alert(`Failed to remove member: ${err.message || 'Unknown error'}`);
     } finally {
       setActionLoading(null);
     }
