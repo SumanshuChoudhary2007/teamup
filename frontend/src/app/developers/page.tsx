@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase, type Profile } from '@/lib/supabase';
 import { Users, Search, Code, MapPin, ExternalLink, Globe, User, Shield, Sparkles } from 'lucide-react';
+import { DeveloperSkeleton } from '@/components/Skeleton';
 
 export default function AllDevelopersPage() {
   const [developers, setDevelopers] = useState<Profile[]>([]);
@@ -54,8 +55,8 @@ export default function AllDevelopersPage() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <DeveloperSkeleton key={i} />)}
           </div>
         ) : filtered.length === 0 ? (
           <div className="glass rounded-2xl p-12 text-center">

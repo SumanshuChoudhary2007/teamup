@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase, type Hackathon } from '@/lib/supabase';
 import { Trophy, Calendar, MapPin, Globe, Search, Filter, Users, ArrowRight, Wifi, Building2 } from 'lucide-react';
+import { HackathonSkeleton } from '@/components/Skeleton';
 
 export default function HackathonsPage() {
   const [hackathons, setHackathons] = useState<Hackathon[]>([]);
@@ -82,8 +83,8 @@ export default function HackathonsPage() {
 
         {/* Grid */}
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map(i => <HackathonSkeleton key={i} />)}
           </div>
         ) : filtered.length === 0 ? (
           <div className="glass rounded-2xl p-12 text-center">

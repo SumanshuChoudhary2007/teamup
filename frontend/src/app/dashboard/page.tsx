@@ -9,6 +9,7 @@ import {
   LayoutDashboard, Trophy, Users, FileText, Plus, Clock,
   CheckCircle, XCircle, ArrowRight, Zap, UserCheck, AlertCircle, User
 } from 'lucide-react';
+import { DashboardSkeleton } from '@/components/Skeleton';
 
 export default function DashboardPage() {
   const { user, profile, loading: authLoading } = useAuth();
@@ -198,8 +199,8 @@ export default function DashboardPage() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" />
+        <div className="relative z-10">
+          <DashboardSkeleton />
         </div>
       ) : (
         <div className="relative z-10 space-y-12">
