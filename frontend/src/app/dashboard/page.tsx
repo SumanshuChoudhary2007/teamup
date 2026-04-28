@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase, type Team, type Application, type Hackathon, type Profile } from '@/lib/supabase';
 import {
   LayoutDashboard, Trophy, Users, FileText, Plus, Clock,
-  CheckCircle, XCircle, ArrowRight, Zap, UserCheck, AlertCircle, User, Sparkles
+  CheckCircle, XCircle, ArrowRight, Zap, UserCheck, AlertCircle, User, Sparkles, X
 } from 'lucide-react';
 import { DashboardSkeleton } from '@/components/Skeleton';
 
@@ -23,6 +23,13 @@ export default function DashboardPage() {
   const [pendingApps, setPendingApps] = useState<(Application & { user: { name: string; skills: string[] }; team: { team_name: string } })[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Onboarding modal state
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [obSkills, setObSkills] = useState<string[]>([]);
+  const [obSkillInput, setObSkillInput] = useState('');
+  const [obExperience, setObExperience] = useState('beginner');
+  const [obSaving, setObSaving] = useState(false);
+
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login');
@@ -34,6 +41,13 @@ export default function DashboardPage() {
       router.push('/admin');
     }
   }, [authLoading, user, profile, router]);
+
+  // Show onboarding if profile has no skills/experience set
+  useEffect(() => {
+    if (profile && (!profile.skills || profile.skills.length === 0)) {
+      setShowOnboarding(true);
+    }
+  }, [profile]);
 
   useEffect(() => {
     if (!user) return;
@@ -209,9 +223,96 @@ export default function DashboardPage() {
     return <span className={`badge ${cls}`}>{s}</span>;
   };
 
+  const saveOnboarding = async () => {
+    if (!user) return;
+    setObSaving(true);
+    await supabase.from('profiles').update({
+      skills: obSkills,
+      experience: obExperience
+    }).eq('id', user.id);
+    setObSaving(false);
+    setShowOnboarding(false);
+  };
+
   return (
     <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
       <div className="fixed inset-0 bg-grid pointer-events-none opacity-30" />
+
+      {/* Onboarding Modal */}
+      {showOnboarding && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="glass rounded-3xl p-8 border border-white/10 w-full max-w-md shadow-2xl animate-slide-up">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-[#a78bfa]" /> Complete Your Profile
+                </h2>
+                <p className="text-sm text-[#64748b] mt-1">Help us find the right team for you</p>
+              </div>
+              <button onClick={() => setShowOnboarding(false)} className="p-1.5 rounded-lg text-[#64748b] hover:text-white hover:bg-white/10 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Skills */}
+            <div className="mb-6">
+              <label className="block text-sm font-bold text-[#64748b] uppercase tracking-widest mb-3">Your Skills</label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {obSkills.map(s => (
+                  <span key={s} className="skill-tag flex items-center gap-1">
+                    {s}
+                    <button type="button" onClick={() => setObSkills(obSkills.filter(x => x !== s))} className="text-[#64748b] hover:text-white ml-1">&times;</button>
+                  </span>
+                ))}
+              </div>
+              <input
+                type="text"
+                value={obSkillInput}
+                onChange={e => setObSkillInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && obSkillInput.trim()) {
+                    e.preventDefault();
+                    if (!obSkills.includes(obSkillInput.trim())) setObSkills([...obSkills, obSkillInput.trim()]);
+                    setObSkillInput('');
+                  }
+                }}
+                placeholder="Type a skill and press Enter (e.g. React, Python)"
+                className="input-field w-full"
+              />
+            </div>
+
+            {/* Experience */}
+            <div className="mb-8">
+              <label className="block text-sm font-bold text-[#64748b] uppercase tracking-widest mb-3">Experience Level</label>
+              <div className="grid grid-cols-3 gap-3">
+                {['beginner', 'intermediate', 'expert'].map(level => (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setObExperience(level)}
+                    className={`py-3 rounded-xl border text-sm font-bold capitalize transition-all ${
+                      obExperience === level
+                        ? 'bg-[#7c3aed]/20 border-[#7c3aed] text-[#a78bfa]'
+                        : 'glass border-white/5 text-[#94a3b8] hover:bg-white/5'
+                    }`}
+                  >
+                    {level}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={saveOnboarding}
+              disabled={obSaving || obSkills.length === 0}
+              className="w-full btn-primary flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {obSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+              Save & Continue
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="relative z-10 mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
