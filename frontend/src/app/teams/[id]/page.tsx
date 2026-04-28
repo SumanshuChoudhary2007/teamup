@@ -498,13 +498,16 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                   ))}
                 </div>
               )}
-              {isMember && team && user && (
-                <div className="animate-slide-up">
-                  <TeamChat teamId={team.id} userId={user.id} leaderId={team.created_by} />
-                </div>
-              )}
             </div>
           )}
+
+          {/* Team Chat (For all Members) */}
+          {isMember && team && user && (
+            <div className="animate-slide-up mt-8">
+              <TeamChat teamId={team.id} userId={user.id} leaderId={team.created_by} />
+            </div>
+          )}
+        </div>
         </div>
       </div>
     </div>
