@@ -32,6 +32,7 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
 
   const isAdmin = profile?.is_admin === true;
+  const isPendingAdmin = profile?.role === 'admin_pending' && !isAdmin;
 
   useEffect(() => {
     // Removed automatic redirect to admin-apply
@@ -77,6 +78,40 @@ export default function AdminPage() {
   };
 
   if (authLoading) return <div className="min-h-screen pt-20 flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" /></div>;
+
+  if (isPendingAdmin) {
+    return (
+      <div className="min-h-screen pt-24 pb-12 px-4 flex flex-col items-center justify-center relative">
+        <div className="fixed inset-0 bg-grid pointer-events-none opacity-30" />
+        <div className="relative z-10 glass rounded-3xl p-8 sm:p-12 text-center max-w-md w-full border border-white/5 shadow-2xl">
+          <div className="w-20 h-20 rounded-3xl gradient-bg flex items-center justify-center text-white mx-auto mb-6 shadow-lg shadow-purple-500/20">
+            <Clock className="w-10 h-10 text-amber-400" />
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-3">Approval Pending</h1>
+          <p className="text-[#94a3b8] mb-8">
+            Your administrative account has been created. Please wait for the system owner to approve your access.
+          </p>
+          <div className="space-y-4">
+            <button 
+              onClick={() => router.push('/dashboard')}
+              className="btn-primary w-full py-4 text-lg"
+            >
+              Go to User Dashboard
+            </button>
+            <button 
+              onClick={async () => {
+                await supabase.auth.signOut();
+                window.location.reload();
+              }}
+              className="text-sm text-[#64748b] hover:text-white transition-all block w-full text-center"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!user || !isAdmin) {
     return (
