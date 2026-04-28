@@ -230,7 +230,10 @@ export default function AdminPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-white font-medium truncate">{u.name}</p>
                     <p className="text-xs text-[#64748b] truncate">{u.email}</p>
-                    <div className="flex flex-wrap gap-1 mt-1">{u.skills?.slice(0, 4).map(s => <span key={s} className="skill-tag">{s}</span>)}</div>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {u.role === 'admin_pending' && <span className="badge badge-warning text-[10px] py-0 px-1.5">PENDING ADMIN</span>}
+                      {u.skills?.slice(0, 4).map(s => <span key={s} className="skill-tag">{s}</span>)}
+                    </div>
                   </div>
                   {isAdmin && (
                     <button

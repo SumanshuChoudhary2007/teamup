@@ -31,10 +31,18 @@ function RegisterForm() {
     setError('');
     setLoading(true);
 
+    const type = searchParams.get('type');
+    const role = type === 'admin' ? 'admin_pending' : 'user';
+
     const { data, error: err } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: name } }
+      options: { 
+        data: { 
+          full_name: name,
+          role: role
+        } 
+      }
     });
 
     if (err) {
