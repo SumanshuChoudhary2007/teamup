@@ -134,7 +134,11 @@ export default function DashboardPage() {
     load();
   }, [user, profile]);
 
-  if (authLoading || (user && !profile)) return <div className="min-h-screen pt-20 flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" /></div>;
+  if (authLoading) return (
+    <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
+      <DashboardSkeleton />
+    </div>
+  );
 
   if (profile?.is_admin) return null;
 

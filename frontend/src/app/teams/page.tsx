@@ -37,6 +37,19 @@ export default function AllTeamsPage() {
     return matchSearch && matchStatus;
   });
 
+  if (loading) return (
+    <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <div className="flex justify-between items-center mb-8">
+        <div className="space-y-2"><Skeleton className="w-48 h-10" /><Skeleton className="w-64 h-4" /></div>
+        <Skeleton className="w-32 h-12 rounded-xl" />
+      </div>
+      <div className="flex gap-4 mb-8"><Skeleton className="flex-1 h-14 rounded-2xl" /><Skeleton className="w-40 h-14 rounded-2xl" /></div>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[1, 2, 3, 4, 5, 6].map(i => <TeamSkeleton key={i} />)}
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
       <div className="fixed inset-0 bg-grid pointer-events-none opacity-30" />
