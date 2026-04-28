@@ -328,18 +328,14 @@ export default function PublicProfilePage() {
             <div className="glass rounded-3xl p-8 md:p-10">
               <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
                 <Code className="w-6 h-6 text-[#22d3ee]" /> 
-                {profile.looking_for === 'members' ? 'Skills Needed' : 'Tech Stack'}
+                {profile.looking_for === 'members' ? "Leader's Skills" : 'Tech Stack'}
               </h2>
               <div className="flex flex-wrap gap-3">
                 {profile.skills && profile.skills.length > 0 ? (
                   profile.skills.map(skill => (
                     <span 
                       key={skill} 
-                      className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all hover:scale-105 ${
-                        profile.looking_for === 'members' 
-                          ? 'bg-[#06b6d4]/10 border-[#06b6d4]/20 text-[#22d3ee]' 
-                          : 'bg-[#7c3aed]/10 border-[#7c3aed]/20 text-[#a78bfa]'
-                      }`}
+                      className="px-4 py-2 rounded-xl text-sm font-bold border transition-all hover:scale-105 bg-[#7c3aed]/10 border-[#7c3aed]/20 text-[#a78bfa]"
                     >
                       {skill}
                     </span>
