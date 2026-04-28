@@ -12,6 +12,7 @@ import {
 
 export default function DashboardPage() {
   const { user, profile, loading: authLoading } = useAuth();
+  const isLookingForMembers = profile?.looking_for === 'members';
   const router = useRouter();
   const [myTeams, setMyTeams] = useState<Team[]>([]);
   const [suggestedTeams, setSuggestedTeams] = useState<(Team & { hackathon: Hackathon })[]>([]);
@@ -137,7 +138,6 @@ export default function DashboardPage() {
   if (profile?.is_admin) return null;
 
   const isLeader = profile?.role === 'team_leader' || profile?.role === 'admin';
-  const isLookingForMembers = profile?.looking_for === 'members';
   const isProfileIncomplete = !profile?.skills || profile.skills.length === 0 || !profile.bio;
 
   const statusIcon = (s: string) => {
