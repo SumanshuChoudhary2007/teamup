@@ -23,7 +23,7 @@ export default function LandingPage() {
         { count: teams },
         { data: latestHacks }
       ] = await Promise.all([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_admin', false),
         supabase.from('hackathons').select('*', { count: 'exact', head: true }),
         supabase.from('teams').select('*', { count: 'exact', head: true }),
         supabase.from('hackathons').select('*').order('created_at', { ascending: false }).limit(3)

@@ -144,7 +144,9 @@ export default function DashboardPage() {
     load();
   }, [user, profile]);
 
-  if (authLoading || !user) return <div className="min-h-screen pt-20 flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" /></div>;
+  if (authLoading || (user && !profile)) return <div className="min-h-screen pt-20 flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" /></div>;
+
+  if (profile?.is_admin) return null;
 
   const isLeader = profile?.role === 'team_leader' || profile?.role === 'admin';
   const isProfileIncomplete = !profile?.skills || profile.skills.length === 0 || !profile.bio;
