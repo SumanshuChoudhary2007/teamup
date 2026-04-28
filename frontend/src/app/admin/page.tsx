@@ -104,10 +104,6 @@ export default function AdminPage() {
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: role as Profile['role'] } : u));
   };
 
-  const toggleAdmin = async (userId: string, currentStatus: boolean) => {
-    await supabase.from('profiles').update({ is_admin: !currentStatus }).eq('id', userId);
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_admin: !currentStatus } : u));
-  };
 
   if (authLoading) return <div className="min-h-screen pt-20 flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" /></div>;
 
@@ -302,18 +298,6 @@ export default function AdminPage() {
                       {u.skills?.slice(0, 4).map(s => <span key={s} className="skill-tag">{s}</span>)}
                     </div>
                   </div>
-                  {isAdmin && (
-                    <button
-                      onClick={() => toggleAdmin(u.id, u.is_admin)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                        u.is_admin 
-                          ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30' 
-                          : 'bg-white/5 text-[#94a3b8] hover:bg-white/10 border border-white/10'
-                      }`}
-                    >
-                      {u.is_admin ? 'Remove Admin' : 'Make Admin'}
-                    </button>
-                  )}
                   {!isAdmin && u.is_admin && <span className="badge badge-warning text-xs">Admin</span>}
                 </div>
               ))}
