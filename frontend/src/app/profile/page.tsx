@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { supabase, type Profile } from '@/lib/supabase';
-import { User, Mail, Globe, Save, Zap, ArrowLeft, Loader2, CheckCircle2, Users } from 'lucide-react';
+import { User, Mail, Globe, Save, Zap, ArrowLeft, Loader2, CheckCircle2, Users, Camera } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ProfilePage() {
@@ -15,6 +15,8 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -51,6 +53,7 @@ export default function ProfilePage() {
         portfolio_link: profile.portfolio_link || ''
       }));
       setSkills(profile.skills || []);
+      setAvatarUrl(profile.avatar_url || '');
 
       // Fetch team data if they are/were a leader
       supabase.from('teams').select('*').eq('created_by', user.id).maybeSingle().then(({ data }) => {
@@ -84,6 +87,23 @@ export default function ProfilePage() {
 
   const removeSkill = (skillToRemove: string) => {
     setSkills(skills.filter(s => s !== skillToRemove));
+  };
+
+  const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (file.size > 2 * 1024 * 1024) { setError('Image must be under 2MB'); return; }
+    setUploadingAvatar(true);
+    setError('');
+    const ext = file.name.split('.').pop();
+    const path = `${user.id}/avatar.${ext}`;
+    const { error: uploadErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
+    if (uploadErr) { setError('Upload failed: ' + uploadErr.message); setUploadingAvatar(false); return; }
+    const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+    const urlWithCache = `${publicUrl}?t=${Date.now()}`;
+    await supabase.from('profiles').update({ avatar_url: urlWithCache }).eq('id', user.id);
+    setAvatarUrl(urlWithCache);
+    setUploadingAvatar(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -199,7 +219,39 @@ export default function ProfilePage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          
+
+          {/* Avatar Upload */}
+          <div className="flex flex-col items-center gap-4 pb-8 border-b border-white/10">
+            <div className="relative group">
+              <div className="w-24 h-24 rounded-2xl overflow-hidden ring-2 ring-white/10 group-hover:ring-[#7c3aed]/50 transition-all">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full gradient-bg flex items-center justify-center text-white text-3xl font-bold">
+                    {formData.name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || '?'}
+                  </div>
+                )}
+              </div>
+              <label
+                htmlFor="avatar-upload"
+                className="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl bg-[#7c3aed] flex items-center justify-center cursor-pointer hover:bg-[#6d28d9] transition-colors shadow-lg"
+              >
+                {uploadingAvatar
+                  ? <Loader2 className="w-4 h-4 text-white animate-spin" />
+                  : <Camera className="w-4 h-4 text-white" />}
+              </label>
+              <input
+                id="avatar-upload"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="hidden"
+                onChange={uploadAvatar}
+                disabled={uploadingAvatar}
+              />
+            </div>
+            <p className="text-xs text-[#64748b]">Click the camera icon to change your photo · Max 2MB</p>
+          </div>
+
           {/* Choice Toggle Moved to Top */}
           <div className="space-y-6 mb-10">
             <div className="glass rounded-2xl p-4 border border-white/5">
