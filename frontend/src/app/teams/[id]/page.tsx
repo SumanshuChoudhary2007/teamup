@@ -18,7 +18,8 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
   const router = useRouter();
   const [team, setTeam] = useState<(Team & { hackathon: Hackathon; creator: Profile }) | null>(null);
   const [members, setMembers] = useState<Profile[]>([]);
-  const [applications, setApplications] = useState<(Application & { user: Profile })[]>([]);
+  const [pendingApps, setPendingApps] = useState<(Application & { user: Profile })[]>([]);
+  const [rejectedApps, setRejectedApps] = useState<(Application & { user: Profile })[]>([]);
   const [myApplication, setMyApplication] = useState<Application | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -56,14 +57,16 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
         const allMembers = [teamData.creator, ...memberList.filter(m => m.id !== teamData.created_by)];
         setMembers(allMembers as Profile[]);
 
-        // Fetch pending applications if current user is leader
+        // Fetch applications if current user is leader
         if (user && user.id === teamData.created_by) {
-          const { data: pendingApps } = await supabase
+          const { data: allApps } = await supabase
             .from('applications')
             .select('*, user:profiles(*)')
-            .eq('team_id', id)
-            .eq('status', 'pending');
-          setApplications((pendingApps || []) as any);
+            .eq('team_id', id);
+          
+          const apps = (allApps || []) as any;
+          setPendingApps(apps.filter((a: any) => a.status === 'pending'));
+          setRejectedApps(apps.filter((a: any) => a.status === 'rejected'));
         }
 
         // Check if current user has an application
@@ -138,7 +141,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
     }
   };
 
-  const handleApplication = async (appId: string, status: 'accepted' | 'rejected') => {
+  const handleApplication = async (appId: string, status: 'accepted' | 'rejected' | 'pending') => {
     setActionLoading(appId);
     try {
       const { error } = await supabase
@@ -149,18 +152,14 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
       if (error) throw error;
 
       if (status === 'accepted') {
-        // Update local member list
-        const app = applications.find(a => a.id === appId);
+        const app = pendingApps.find(a => a.id === appId);
         if (app?.user) setMembers(prev => [...prev, app.user]);
         
-        // Increment the member count in the teams table
-        await supabase.rpc('increment_team_members', { team_id_input: id });
-
-        // Remove user from developers list by updating their status
+        // Trigger handle_app_status_change via DB trigger (we already set this up)
+        
         if (app?.user_id) {
           await supabase.from('profiles').update({ looking_for: 'none' }).eq('id', app.user_id);
           
-          // Notify Member
           await sendNotification(
             app.user_id,
             'application_accepted',
@@ -168,9 +167,33 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
             `Congratulations! You are now a member of ${team?.team_name}`
           );
         }
+      } else if (status === 'rejected') {
+        const app = pendingApps.find(a => a.id === appId);
+        if (app) {
+          await sendNotification(
+            app.user_id,
+            'application_rejected',
+            'Application Rejected',
+            `Sorry, your application to join ${team?.team_name} was not accepted.`
+          );
+        }
       }
 
-      setApplications(prev => prev.filter(a => a.id !== appId));
+      // Refresh applications locally
+      if (status === 'pending') {
+        // This is an UNDO
+        const app = rejectedApps.find(a => a.id === appId);
+        if (app) {
+          setRejectedApps(prev => prev.filter(a => a.id !== appId));
+          setPendingApps(prev => [...prev, { ...app, status: 'pending' }]);
+        }
+      } else if (status === 'accepted') {
+        setPendingApps(prev => prev.filter(a => a.id !== appId));
+      } else if (status === 'rejected') {
+        const app = pendingApps.find(a => a.id === appId);
+        setPendingApps(prev => prev.filter(a => a.id !== appId));
+        if (app) setRejectedApps(prev => [...prev, { ...app, status: 'rejected' }]);
+      }
     } catch (err) {
       console.error('Error updating application:', err);
     } finally {
@@ -442,15 +465,9 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                       : 'The team leader is reviewing your request.'}
                   </p>
                   {myApplication.status === 'rejected' && (
-                    <button 
-                      onClick={async () => {
-                        await supabase.from('applications').delete().eq('id', myApplication.id);
-                        setMyApplication(null);
-                      }}
-                      className="mt-3 text-[10px] font-bold text-[#a78bfa] uppercase tracking-widest hover:text-white transition-colors"
-                    >
-                      Try Applying Again?
-                    </button>
+                    <div className="mt-3 py-1.5 px-3 rounded-lg bg-red-500/10 border border-red-500/20 inline-flex items-center gap-2 text-[10px] font-bold text-red-400 uppercase tracking-widest">
+                      <AlertCircle className="w-3 h-3" /> Re-applications not allowed
+                    </div>
                   )}
                 </div>
               )}
@@ -476,51 +493,81 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
 
           {/* Pending Applications (Leader Only) */}
           {isLeader && (
-            <div className="glass rounded-3xl p-6 border border-white/10">
-              <h3 className="text-sm font-bold text-[#64748b] uppercase tracking-widest mb-6 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-amber-400" /> Pending Applications
-              </h3>
-              
-              {applications.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-[#64748b] text-sm">No pending applications</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {applications.map((app) => (
-                    <div key={app.id} className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-4">
-                      <Link href={`/profile/${app.user_id}`} className="flex items-center gap-3 group/user flex-1">
-                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white font-bold group-hover/user:scale-105 transition-transform">
-                          {app.user.name?.[0]}
+            <div className="space-y-6">
+              <div className="glass rounded-3xl p-6 border border-white/10">
+                <h3 className="text-sm font-bold text-[#64748b] uppercase tracking-widest mb-6 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-amber-400" /> Pending Applications
+                </h3>
+                
+                {pendingApps.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-[#64748b] text-sm">No pending applications</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {pendingApps.map((app) => (
+                      <div key={app.id} className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-4">
+                        <Link href={`/profile/${app.user_id}`} className="flex items-center gap-3 group/user flex-1">
+                          <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white font-bold group-hover/user:scale-105 transition-transform">
+                            {app.user.name?.[0]}
+                          </div>
+                          <div>
+                            <p className="text-white font-medium text-sm group-hover/user:text-[#a78bfa] transition-colors">{app.user.name}</p>
+                            <p className="text-xs text-[#64748b] line-clamp-1">{app.user.skills?.join(', ') || 'No skills listed'}</p>
+                          </div>
+                        </Link>
+                        
+                        <div className="bg-black/20 p-3 rounded-xl border border-white/5">
+                          <p className="text-xs text-[#94a3b8] italic">"{app.message || 'No message provided'}"</p>
                         </div>
-                        <div>
-                          <p className="text-white font-medium text-sm group-hover/user:text-[#a78bfa] transition-colors">{app.user.name}</p>
-                          <p className="text-xs text-[#64748b] line-clamp-1">{app.user.skills?.join(', ') || 'No skills listed'}</p>
-                        </div>
-                      </Link>
-                      
-                      <div className="bg-black/20 p-3 rounded-xl border border-white/5">
-                        <p className="text-xs text-[#94a3b8] italic">"{app.message || 'No message provided'}"</p>
-                      </div>
 
-                      <div className="flex gap-2">
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => handleApplication(app.id, 'accepted')}
+                            disabled={!!actionLoading}
+                            className="flex-1 py-2 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs font-bold border border-emerald-500/20 hover:bg-emerald-500/20 transition-all flex items-center justify-center gap-2"
+                          >
+                            {actionLoading === app.id ? <div className="w-3 h-3 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" /> : <><CheckCircle className="w-3 h-3" /> Accept</>}
+                          </button>
+                          <button 
+                            onClick={() => handleApplication(app.id, 'rejected')}
+                            disabled={!!actionLoading}
+                            className="flex-1 py-2 rounded-xl bg-red-500/10 text-red-400 text-xs font-bold border border-red-500/20 hover:bg-red-500/20 transition-all flex items-center justify-center gap-2"
+                          >
+                            <XCircle className="w-3 h-3" /> Reject
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Rejected Applications (Leader Only) */}
+              {rejectedApps.length > 0 && (
+                <div className="glass rounded-3xl p-6 border border-red-500/10 bg-red-500/[0.02]">
+                  <h3 className="text-sm font-bold text-[#64748b] uppercase tracking-widest mb-6 flex items-center gap-2">
+                    <XCircle className="w-4 h-4 text-red-400" /> Rejected Applicants
+                  </h3>
+                  <div className="space-y-3">
+                    {rejectedApps.map((app) => (
+                      <div key={app.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 group">
+                        <Link href={`/profile/${app.user_id}`} className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-xs text-white font-bold">
+                            {app.user.name?.[0]}
+                          </div>
+                          <p className="text-sm text-[#94a3b8] group-hover:text-white transition-colors">{app.user.name}</p>
+                        </Link>
                         <button 
-                          onClick={() => handleApplication(app.id, 'accepted')}
+                          onClick={() => handleApplication(app.id, 'pending')}
                           disabled={!!actionLoading}
-                          className="flex-1 py-2 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs font-bold border border-emerald-500/20 hover:bg-emerald-500/20 transition-all flex items-center justify-center gap-2"
+                          className="text-[10px] font-bold text-[#7c3aed] hover:text-[#a78bfa] transition-colors uppercase tracking-widest"
                         >
-                          {actionLoading === app.id ? <div className="w-3 h-3 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" /> : <><CheckCircle className="w-3 h-3" /> Accept</>}
-                        </button>
-                        <button 
-                          onClick={() => handleApplication(app.id, 'rejected')}
-                          disabled={!!actionLoading}
-                          className="flex-1 py-2 rounded-xl bg-red-500/10 text-red-400 text-xs font-bold border border-red-500/20 hover:bg-red-500/20 transition-all flex items-center justify-center gap-2"
-                        >
-                          <XCircle className="w-3 h-3" /> Reject
+                          {actionLoading === app.id ? 'Undoing...' : 'Undo Reject'}
                         </button>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
