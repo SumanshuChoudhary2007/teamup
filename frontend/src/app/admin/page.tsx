@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { supabase, type Hackathon, type Team, type Profile } from '@/lib/supabase';
-import { Shield, Trophy, Users, Plus, X, Calendar, Globe, Edit3, Trash2, UserCog, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { Shield, Trophy, Users, Plus, X, Calendar, Trash2, UserCog, Clock, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 
 const ROLES = ['user', 'team_leader', 'admin'] as const;
@@ -17,9 +17,6 @@ export default function AdminPage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [users, setUsers] = useState<Profile[]>([]);
   const [tab, setTab] = useState<'hackathons' | 'teams' | 'users'>('hackathons');
-  const [selectedHackathon, setSelectedHackathon] = useState<string | null>(null);
-  const [hackathonTeams, setHackathonTeams] = useState<Record<string, Team[]>>({});
-  const [loadingTeams, setLoadingTeams] = useState<string | null>(null);
 
   // New hackathon form
   const [showForm, setShowForm] = useState(false);
@@ -106,24 +103,6 @@ export default function AdminPage() {
   const updateRole = async (userId: string, role: string) => {
     await supabase.from('profiles').update({ role }).eq('id', userId);
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: role as Profile['role'] } : u));
-  };
-
-  const toggleHackathon = async (hackathonId: string) => {
-    if (selectedHackathon === hackathonId) {
-      setSelectedHackathon(null);
-      return;
-    }
-    setSelectedHackathon(hackathonId);
-    // Only fetch if not already loaded
-    if (hackathonTeams[hackathonId]) return;
-    setLoadingTeams(hackathonId);
-    const { data } = await supabase
-      .from('teams')
-      .select('*, creator:profiles!created_by(name), members:applications(count)')
-      .eq('hackathon_id', hackathonId)
-      .order('created_at', { ascending: false });
-    setHackathonTeams(prev => ({ ...prev, [hackathonId]: (data || []) as Team[] }));
-    setLoadingTeams(null);
   };
 
 
@@ -270,19 +249,13 @@ export default function AdminPage() {
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {hackathons.map(h => (
                 <div key={h.id} className="glass rounded-xl overflow-hidden border border-white/5">
-                  {/* Hackathon Header — clickable */}
-                  <div
-                    className="p-5 cursor-pointer hover:bg-white/5 transition-all"
-                    onClick={() => toggleHackathon(h.id)}
-                  >
+                  <Link href={`/admin/hackathon/${h.id}`} className="block p-5 hover:bg-white/5 transition-all group">
                     <div className="flex items-start justify-between gap-2 mb-2">
-                      <h3 className="font-semibold text-white flex-1">{h.title}</h3>
+                      <h3 className="font-semibold text-white group-hover:text-[#a78bfa] transition-colors flex-1">{h.title}</h3>
                       <div className="flex items-center gap-1 shrink-0">
-                        {selectedHackathon === h.id
-                          ? <ChevronUp className="w-4 h-4 text-[#a78bfa]" />
-                          : <ChevronDown className="w-4 h-4 text-[#64748b]" />}
+                        <ExternalLink className="w-4 h-4 text-[#64748b] group-hover:text-[#a78bfa] transition-colors" />
                         <button
-                          onClick={e => { e.stopPropagation(); deleteHackathon(h.id); }}
+                          onClick={e => { e.preventDefault(); e.stopPropagation(); deleteHackathon(h.id); }}
                           className="p-1.5 rounded-lg hover:bg-red-400/10 text-red-400"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -292,41 +265,7 @@ export default function AdminPage() {
                     <p className="text-xs text-[#94a3b8] mb-2">{h.organizer}</p>
                     {h.date && <p className="text-xs text-[#64748b] flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(h.date).toLocaleDateString()}</p>}
                     <div className="flex flex-wrap gap-1 mt-2">{h.tags?.slice(0, 3).map(t => <span key={t} className="skill-tag">{t}</span>)}</div>
-                  </div>
-
-                  {/* Teams Drill-down */}
-                  {selectedHackathon === h.id && (
-                    <div className="border-t border-white/10 bg-black/20 p-4 space-y-3">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-[#64748b] mb-3 flex items-center gap-2">
-                        <Users className="w-3 h-3" /> Registered Teams
-                      </p>
-                      {loadingTeams === h.id ? (
-                        <div className="flex justify-center py-4">
-                          <div className="w-5 h-5 border-2 border-[#7c3aed]/30 border-t-[#7c3aed] rounded-full animate-spin" />
-                        </div>
-                      ) : hackathonTeams[h.id]?.length === 0 ? (
-                        <p className="text-xs text-[#64748b] text-center py-4">No teams registered yet.</p>
-                      ) : (
-                        hackathonTeams[h.id]?.map(t => (
-                          <Link
-                            key={t.id}
-                            href={`/teams/${t.id}`}
-                            className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all group"
-                          >
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold text-white group-hover:text-[#a78bfa] transition-colors truncate">{t.team_name}</p>
-                              <p className="text-[10px] text-[#64748b] truncate">{t.project_idea || 'No project idea'}</p>
-                              <div className="flex items-center gap-3 mt-1">
-                                <span className="text-[10px] text-[#64748b]">{t.current_members}/{t.max_members} members</span>
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${t.status === 'OPEN' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>{t.status}</span>
-                              </div>
-                            </div>
-                            <ExternalLink className="w-3.5 h-3.5 text-[#64748b] group-hover:text-[#a78bfa] shrink-0 ml-2 transition-colors" />
-                          </Link>
-                        ))
-                      )}
-                    </div>
-                  )}
+                  </Link>
                 </div>
               ))}
             </div>
