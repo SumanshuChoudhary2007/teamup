@@ -19,6 +19,7 @@ export default function DashboardPage() {
   const [suggestedTeams, setSuggestedTeams] = useState<(Team & { hackathon: Hackathon })[]>([]);
   const [suggestedDevelopers, setSuggestedDevelopers] = useState<Profile[]>([]);
   const [myApps, setMyApps] = useState<(Application & { team: Team & { hackathon: Hackathon } })[]>([]);
+  const [myInvites, setMyInvites] = useState<(Application & { team: Team & { hackathon: Hackathon } })[]>([]);
   const [pendingApps, setPendingApps] = useState<(Application & { user: { name: string; skills: string[] }; team: { team_name: string } })[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -58,13 +59,23 @@ export default function DashboardPage() {
       [...(createdTeams || []), ...joinedTeams].forEach(t => allTeamsMap.set(t.id, t));
       setMyTeams(Array.from(allTeamsMap.values()) as Team[]);
 
-      // My applications (all statuses)
+       // My applications (pending/rejected/accepted)
       const { data: apps } = await supabase
         .from('applications')
         .select('*, team:teams(*, hackathon:hackathons(*))')
         .eq('user_id', user.id)
+        .neq('status', 'invited')
         .order('created_at', { ascending: false });
       setMyApps((apps || []) as typeof myApps);
+
+      // My invitations
+      const { data: invites } = await supabase
+        .from('applications')
+        .select('*, team:teams(*, hackathon:hackathons(*))')
+        .eq('user_id', user.id)
+        .eq('status', 'invited')
+        .order('created_at', { ascending: false });
+      setMyInvites((invites || []) as typeof myInvites);
 
       // Applications to my teams (for team leaders)
       const createdTeamIds = (createdTeams || []).map(t => t.id);
@@ -133,6 +144,27 @@ export default function DashboardPage() {
     };
     load();
   }, [user, profile]);
+
+  const handleInviteAction = async (inviteId: string, action: 'accepted' | 'rejected') => {
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .update({ status: action })
+        .eq('id', inviteId);
+
+      if (error) throw error;
+      
+      if (action === 'accepted') {
+        // If accepted, update profile to 'none' looking_for
+        await supabase.from('profiles').update({ looking_for: 'none' }).eq('id', user?.id);
+      }
+
+      // Refresh data
+      window.location.reload();
+    } catch (err) {
+      console.error('Invite Action Error:', err);
+    }
+  };
 
   if (authLoading) return (
     <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
@@ -322,6 +354,46 @@ export default function DashboardPage() {
                     <Link href={`/teams/${app.team_id}`} className="btn-secondary text-sm py-1.5 px-3 flex items-center gap-1">
                       Review <ArrowRight className="w-3 h-3" />
                     </Link>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Invitations Section */}
+          {myInvites.length > 0 && (
+            <div className="glass rounded-3xl p-8 border border-[#7c3aed]/20 bg-[#7c3aed]/5 relative overflow-hidden animate-slide-up">
+              <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
+                <UserCheck className="w-24 h-24 text-[#7c3aed]" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                <Sparkles className="w-6 h-6 text-amber-400" />
+                Invitations Received
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {myInvites.map(invite => (
+                  <div key={invite.id} className="bg-[#1e1b2e] border border-white/10 rounded-2xl p-5 space-y-4 relative z-10 group hover:border-[#7c3aed]/50 transition-all">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-bold text-white mb-1 group-hover:text-[#a78bfa] transition-colors">{invite.team.team_name}</h3>
+                        <p className="text-[10px] text-[#64748b] uppercase font-black tracking-widest">{invite.team.hackathon?.title}</p>
+                      </div>
+                      <span className="px-2 py-1 rounded-lg bg-[#7c3aed]/10 text-[#a78bfa] text-[10px] font-bold">INVITED</span>
+                    </div>
+                    <p className="text-xs text-[#94a3b8] italic line-clamp-2">"{invite.message || 'No message provided'}"</p>
+                    <div className="flex gap-2 pt-2">
+                      <button 
+                        onClick={() => handleInviteAction(invite.id, 'accepted')}
+                        className="flex-1 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20"
+                      >
+                        Accept
+                      </button>
+                      <button 
+                        onClick={() => handleInviteAction(invite.id, 'rejected')}
+                        className="flex-1 py-2 rounded-xl bg-white/5 text-white text-xs font-bold hover:bg-white/10 border border-white/10 transition-all"
+                      >
+                        Decline
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

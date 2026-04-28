@@ -9,14 +9,22 @@ import {
   ExternalLink, MessageSquare, Trophy
 } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
+import { UserPlus, Send, X } from 'lucide-react';
 
 export default function PublicProfilePage() {
   const { id } = useParams();
   const router = useRouter();
   
+  const { user: currentUser, profile: currentProfile } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [myTeams, setMyTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
+  const [inviting, setInviting] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState('');
+  const [inviteMsg, setInviteMsg] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -59,6 +67,16 @@ export default function PublicProfilePage() {
         
         setTeams(allTeams as Team[]);
 
+        // If current user is a leader, fetch their teams for invitation
+        if (currentUser && (currentProfile?.role === 'team_leader' || currentProfile?.is_admin)) {
+          const { data: leaderTeams } = await supabase
+            .from('teams')
+            .select('*')
+            .eq('created_by', currentUser.id)
+            .eq('status', 'OPEN');
+          setMyTeams(leaderTeams || []);
+        }
+
       } catch (err: any) {
         console.error('Error fetching profile:', err);
         setError('Profile not found');
@@ -69,6 +87,41 @@ export default function PublicProfilePage() {
 
     fetchProfile();
   }, [id]);
+
+  const handleInvite = async () => {
+    if (!selectedTeam || !id || !currentUser) return;
+    setInviteLoading(true);
+    try {
+      const { error } = await supabase.from('applications').insert({
+        team_id: selectedTeam,
+        user_id: id,
+        message: inviteMsg,
+        status: 'invited'
+      });
+
+      if (error) throw error;
+
+      // Notify User
+      const team = myTeams.find(t => t.id === selectedTeam);
+      await supabase.from('notifications').insert({
+        recipient_id: id,
+        type: 'team_invite',
+        title: 'Team Invitation',
+        message: `You have been invited to join "${team?.team_name}" by ${currentProfile?.name}`,
+        link: '/dashboard'
+      });
+
+      alert('Invitation sent successfully!');
+      setInviting(false);
+      setInviteMsg('');
+      setSelectedTeam('');
+    } catch (err: any) {
+      console.error('Invite Error:', err);
+      alert(`Failed to send invite: ${err.message}`);
+    } finally {
+      setInviteLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -109,11 +162,77 @@ export default function PublicProfilePage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex gap-3">
+            {currentUser && currentUser.id !== id && (currentProfile?.role === 'team_leader' || currentProfile?.is_admin) && (
+              <button 
+                onClick={() => setInviting(true)}
+                className="btn-primary py-2 px-4 flex items-center gap-2 text-sm"
+              >
+                <UserPlus className="w-4 h-4" /> Invite to Team
+              </button>
+            )}
             <a href={`mailto:${profile.email}`} className="btn-secondary py-2 px-4 flex items-center gap-2 text-sm">
               <MessageSquare className="w-4 h-4" /> Message
             </a>
           </div>
         </div>
+
+        {/* Invite Modal */}
+        {inviting && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setInviting(false)} />
+            <div className="glass-strong rounded-3xl p-8 w-full max-w-md relative z-10 animate-scale-up">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <UserPlus className="w-5 h-5 text-[#7c3aed]" />
+                  Invite to Team
+                </h2>
+                <button onClick={() => setInviting(false)} className="p-2 rounded-xl hover:bg-white/5 transition-colors text-[#64748b] hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-xs font-bold text-[#64748b] uppercase tracking-widest mb-3">Select Team</label>
+                  {myTeams.length === 0 ? (
+                    <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                      You don't have any open teams to invite members to.
+                    </div>
+                  ) : (
+                    <select 
+                      value={selectedTeam}
+                      onChange={(e) => setSelectedTeam(e.target.value)}
+                      className="input-field w-full"
+                    >
+                      <option value="">Choose a team...</option>
+                      {myTeams.map(t => (
+                        <option key={t.id} value={t.id}>{t.team_name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#64748b] uppercase tracking-widest mb-3">Personal Message (Optional)</label>
+                  <textarea
+                    value={inviteMsg}
+                    onChange={(e) => setInviteMsg(e.target.value)}
+                    placeholder="Tell them why you want them on your team..."
+                    className="input-field w-full min-h-[100px] text-sm"
+                  />
+                </div>
+
+                <button 
+                  onClick={handleInvite}
+                  disabled={!selectedTeam || inviteLoading || myTeams.length === 0}
+                  className="btn-primary w-full py-4 flex items-center justify-center gap-2"
+                >
+                  {inviteLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Send className="w-4 h-4" /> Send Invitation</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Sidebar - Personal Info */}
