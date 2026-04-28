@@ -76,7 +76,6 @@ export default function DashboardPage() {
       }
 
       // Recommendations based on 'looking_for'
-      const isLookingForMembers = profile?.looking_for === 'members';
 
       if (isLookingForMembers) {
         // Find Developers
@@ -138,6 +137,7 @@ export default function DashboardPage() {
   if (profile?.is_admin) return null;
 
   const isLeader = profile?.role === 'team_leader' || profile?.role === 'admin';
+  const isLookingForMembers = profile?.looking_for === 'members';
   const isProfileIncomplete = !profile?.skills || profile.skills.length === 0 || !profile.bio;
 
   const statusIcon = (s: string) => {
