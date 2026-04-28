@@ -34,13 +34,30 @@ export default function PublicProfilePage() {
         if (profileError) throw profileError;
         setProfile(data as Profile);
 
-        // Fetch teams they belong to
-        const { data: teamData } = await supabase
+        // Fetch teams they created
+        const { data: createdTeams } = await supabase
           .from('teams')
           .select('*, hackathon:hackathons(*)')
           .eq('created_by', id);
         
-        setTeams(teamData || []);
+        // Fetch teams they joined
+        const { data: joinedApps } = await supabase
+          .from('applications')
+          .select('team:teams(*, hackathon:hackathons(*))')
+          .eq('user_id', id)
+          .eq('status', 'accepted');
+
+        const joinedTeams = joinedApps?.map(a => a.team).filter(Boolean) || [];
+        
+        // Merge and remove duplicates
+        const allTeams = [...(createdTeams || [])];
+        joinedTeams.forEach((t: any) => {
+          if (!allTeams.find(at => at.id === t.id)) {
+            allTeams.push(t);
+          }
+        });
+        
+        setTeams(allTeams as Team[]);
 
       } catch (err: any) {
         console.error('Error fetching profile:', err);

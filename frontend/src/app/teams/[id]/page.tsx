@@ -57,8 +57,8 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
         const allMembers = [teamData.creator, ...memberList.filter(m => m.id !== teamData.created_by)];
         setMembers(allMembers as Profile[]);
 
-        // Fetch applications if current user is leader
-        if (user && user.id === teamData.created_by) {
+        // Fetch applications if current user is leader OR ADMIN
+        if (user && (user.id === teamData.created_by || profile?.is_admin)) {
           const { data: allApps } = await supabase
             .from('applications')
             .select('*, user:profiles(*)')
@@ -536,8 +536,8 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
             </div>
           </div>
 
-          {/* Pending Applications (Leader Only) */}
-          {isLeader && (
+          {/* Pending Applications (Leader or Admin Only) */}
+          {(isLeader || profile?.is_admin) && (
             <div className="space-y-6">
               <div className="glass rounded-3xl p-6 border border-white/10">
                 <h3 className="text-sm font-bold text-[#64748b] uppercase tracking-widest mb-6 flex items-center gap-2">
