@@ -56,6 +56,17 @@ export default function Navbar() {
         table: 'notifications',
         filter: `recipient_id=eq.${user.id}`,
       }, () => fetchNotifs())
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'notifications',
+        filter: `recipient_id=eq.${user.id}`,
+      }, () => fetchNotifs())
+      .on('postgres_changes', {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'notifications',
+      }, () => fetchNotifs())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user]);

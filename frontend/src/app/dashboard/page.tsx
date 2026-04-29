@@ -105,49 +105,59 @@ export default function DashboardPage() {
       // Recommendations based on 'looking_for'
 
       if (isLookingForMembers) {
-        // Fetch IDs of users who are already accepted members of any team
-        const { data: acceptedApps } = await supabase
-          .from('applications')
-          .select('user_id')
-          .eq('status', 'accepted');
-        
-        // Also get IDs of all team leaders (created_by)
-        const { data: allTeams } = await supabase
-          .from('teams')
-          .select('created_by');
+        // Only show recommendations if leader has created a team
+        const leaderHasTeam = (createdTeams || []).length > 0;
+        if (!leaderHasTeam) {
+          setSuggestedDevelopers([]);
+          setSuggestedTeams([]);
+        } else {
+          // Fetch IDs of users who are already accepted members of any team
+          const { data: acceptedApps } = await supabase
+            .from('applications')
+            .select('user_id')
+            .eq('status', 'accepted');
+          
+          // Also get IDs of all team leaders (created_by)
+          const { data: allTeams } = await supabase
+            .from('teams')
+            .select('created_by');
 
-        const takenIds = [
-          user.id, // exclude self
-          ...(acceptedApps?.map(a => a.user_id) || []),
-          ...(allTeams?.map(t => t.created_by) || []),
-        ];
-        // Deduplicate
-        const excludeIds = [...new Set(takenIds)];
+          const takenIds = [
+            user.id, // exclude self
+            ...(acceptedApps?.map(a => a.user_id) || []),
+            ...(allTeams?.map(t => t.created_by) || []),
+          ];
+          const excludeIds = [...new Set(takenIds)];
 
-        // Find Developers (not already in a team)
-        let developerMatches: any[] = [];
-        if (profile?.skills && profile.skills.length > 0) {
-          const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .not('id', 'in', `(${excludeIds.join(',')})`)
-            .eq('is_admin', false)
-            .overlaps('skills', profile.skills)
-            .limit(4);
-          developerMatches = data || [];
+          // Find Developers based on team's required_skills (not leader's own skills)
+          const leaderTeam = (createdTeams || [])[0];
+          const requiredSkills = leaderTeam?.required_skills || [];
+
+          let developerMatches: any[] = [];
+          if (requiredSkills.length > 0) {
+            const { data } = await supabase
+              .from('profiles')
+              .select('*')
+              .not('id', 'in', `(${excludeIds.join(',')})`)
+              .eq('is_admin', false)
+              .overlaps('skills', requiredSkills)
+              .limit(4);
+            developerMatches = data || [];
+          }
+          if (developerMatches.length === 0) {
+            const { data } = await supabase
+              .from('profiles')
+              .select('*')
+              .not('id', 'in', `(${excludeIds.join(',')})`)
+              .eq('is_admin', false)
+              .limit(4)
+              .order('created_at', { ascending: false });
+            developerMatches = data || [];
+          }
+          setSuggestedDevelopers(developerMatches);
+          setSuggestedTeams([]);
         }
-        if (developerMatches.length === 0) {
-          const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .not('id', 'in', `(${excludeIds.join(',')})`)
-            .eq('is_admin', false)
-            .limit(4)
-            .order('created_at', { ascending: false });
-          developerMatches = data || [];
-        }
-        setSuggestedDevelopers(developerMatches);
-        setSuggestedTeams([]);
+
       } else {
         // Find Teams
         let teamMatches: any[] = [];
