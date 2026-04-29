@@ -14,6 +14,10 @@ type PreMember = {
   experience: string;
   skills: string[];
   skillInput: string;
+  github: string;
+  linkedin: string;
+  portfolio: string;
+  email: string;
 };
 
 function CreateTeamForm() {
@@ -59,7 +63,8 @@ function CreateTeamForm() {
       if (extraCount > prev.length) {
         // Add empty slots
         const extras: PreMember[] = Array.from({ length: extraCount - prev.length }, () => ({
-          name: '', experience: 'beginner', skills: [], skillInput: ''
+          name: '', experience: 'beginner', skills: [], skillInput: '',
+          github: '', linkedin: '', portfolio: '', email: ''
         }));
         return [...prev, ...extras];
       }
@@ -108,6 +113,10 @@ function CreateTeamForm() {
       name: m.name.trim(),
       experience: m.experience,
       skills: m.skills,
+      github: m.github.trim(),
+      linkedin: m.linkedin.trim(),
+      portfolio: m.portfolio.trim(),
+      email: m.email.trim(),
     }));
 
     const { data, error: err } = await supabase
@@ -274,6 +283,50 @@ function CreateTeamForm() {
                           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addMemberSkill(idx); } }}
                           className="w-full bg-transparent outline-none text-white px-2 py-1 text-sm"
                           placeholder="e.g. React, Python..."
+                        />
+                      </div>
+                    </div>
+
+                    {/* Social Links */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-[#94a3b8] mb-1">GitHub URL</label>
+                        <input
+                          type="url"
+                          value={member.github}
+                          onChange={e => updateMember(idx, 'github', e.target.value)}
+                          className="input-field text-sm"
+                          placeholder="https://github.com/..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-[#94a3b8] mb-1">LinkedIn URL</label>
+                        <input
+                          type="url"
+                          value={member.linkedin}
+                          onChange={e => updateMember(idx, 'linkedin', e.target.value)}
+                          className="input-field text-sm"
+                          placeholder="https://linkedin.com/in/..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-[#94a3b8] mb-1">Portfolio URL</label>
+                        <input
+                          type="url"
+                          value={member.portfolio}
+                          onChange={e => updateMember(idx, 'portfolio', e.target.value)}
+                          className="input-field text-sm"
+                          placeholder="https://yourportfolio.com"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-[#94a3b8] mb-1">Email</label>
+                        <input
+                          type="email"
+                          value={member.email}
+                          onChange={e => updateMember(idx, 'email', e.target.value)}
+                          className="input-field text-sm"
+                          placeholder="member@email.com"
                         />
                       </div>
                     </div>

@@ -512,37 +512,70 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
           </div>
 
           {/* Members List */}
-          <div className="glass rounded-3xl p-8 border border-white/10">
+          <div className="glass rounded-3xl p-5 sm:p-8 border border-white/10">
             <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
               <Users className="w-6 h-6 text-[#a78bfa]" />
-              Team Members <span className="text-sm font-normal text-[#64748b]">({members.length}/{team.max_members})</span>
+              Team Members <span className="text-sm font-normal text-[#64748b]">({members.length + ((team as any).pre_existing_members?.length || 0)}/{team.max_members})</span>
             </h2>
             <div className="grid sm:grid-cols-2 gap-4">
+              {/* Platform registered members */}
               {members.map((member) => (
                 <div key={member.id} className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between group hover:bg-white/[0.08] transition-all">
-                  <Link href={`/profile/${member.id}`} className="flex items-center gap-4 flex-1">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#7c3aed]/20 to-[#06b6d4]/20 flex items-center justify-center text-[#a78bfa] font-bold text-lg ring-1 ring-white/10 group-hover:scale-105 transition-transform">
-                      {member.name?.[0] || 'U'}
+                  <Link href={`/profile/${member.id}`} className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="w-12 h-12 shrink-0 rounded-xl bg-gradient-to-br from-[#7c3aed]/20 to-[#06b6d4]/20 flex items-center justify-center text-[#a78bfa] font-bold text-lg ring-1 ring-white/10 group-hover:scale-105 transition-transform overflow-hidden">
+                      {member.avatar_url ? <img src={member.avatar_url} className="w-full h-full object-cover" alt="" /> : member.name?.[0] || 'U'}
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-white font-semibold group-hover:text-[#a78bfa] transition-colors">{member.name}</p>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-white font-semibold group-hover:text-[#a78bfa] transition-colors truncate">{member.name}</p>
                         {member.id === team.created_by && (
-                          <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 font-bold uppercase tracking-tighter">Leader</span>
+                          <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 font-bold uppercase tracking-tighter shrink-0">Leader</span>
                         )}
                       </div>
-                      <p className="text-xs text-[#64748b] line-clamp-1">{member.skills?.join(' • ') || 'No skills listed'}</p>
+                      <p className="text-xs text-[#64748b] truncate">{member.skills?.join(' • ') || 'No skills listed'}</p>
                     </div>
                   </Link>
                   {isLeader && member.id !== user?.id && (
                     <button 
                       onClick={() => removeMember(member.id, member.name || 'Member')}
                       disabled={!!actionLoading}
-                      className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                      className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50 shrink-0"
                     >
                       <XCircle className="w-5 h-5" />
                     </button>
                   )}
+                </div>
+              ))}
+
+              {/* Pre-existing offline members */}
+              {((team as any).pre_existing_members || []).map((m: any, i: number) => (
+                <div key={`pre-${i}`} className="bg-[#06b6d4]/5 border border-[#06b6d4]/20 rounded-2xl p-4 space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 shrink-0 rounded-xl bg-[#06b6d4]/10 flex items-center justify-center text-[#22d3ee] font-bold text-lg ring-1 ring-[#06b6d4]/20">
+                      {m.name?.[0]?.toUpperCase() || '?'}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-white font-semibold truncate">{m.name}</p>
+                        <span className="text-[10px] bg-[#06b6d4]/20 text-[#22d3ee] px-1.5 py-0.5 rounded border border-[#06b6d4]/30 font-bold uppercase tracking-tighter shrink-0">Offline</span>
+                      </div>
+                      <p className="text-xs text-[#64748b] capitalize">{m.experience || 'beginner'}</p>
+                    </div>
+                  </div>
+                  {m.skills?.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {m.skills.map((s: string) => (
+                        <span key={s} className="text-[10px] bg-white/5 border border-white/10 text-[#94a3b8] px-2 py-0.5 rounded-full">{s}</span>
+                      ))}
+                    </div>
+                  )}
+                  {/* Social links */}
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {m.github && <a href={m.github} target="_blank" rel="noopener noreferrer" className="text-xs text-[#64748b] hover:text-white flex items-center gap-1 transition-colors">🔗 GitHub</a>}
+                    {m.linkedin && <a href={m.linkedin} target="_blank" rel="noopener noreferrer" className="text-xs text-[#64748b] hover:text-white flex items-center gap-1 transition-colors">💼 LinkedIn</a>}
+                    {m.portfolio && <a href={m.portfolio} target="_blank" rel="noopener noreferrer" className="text-xs text-[#64748b] hover:text-white flex items-center gap-1 transition-colors">🌐 Portfolio</a>}
+                    {m.email && <a href={`mailto:${m.email}`} className="text-xs text-[#64748b] hover:text-white flex items-center gap-1 transition-colors">✉ {m.email}</a>}
+                  </div>
                 </div>
               ))}
             </div>
