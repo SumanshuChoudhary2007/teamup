@@ -4,10 +4,17 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { supabase, type Hackathon } from '@/lib/supabase';
-import { Users, Plus, X, Trophy, ArrowLeft } from 'lucide-react';
+import { Users, Plus, X, Trophy, ArrowLeft, User } from 'lucide-react';
 import Link from 'next/link';
 
 const COMMON_SKILLS = ['React','Next.js','TypeScript','JavaScript','Python','Node.js','Rust','Go','Java','Flutter','Swift','Kotlin','Vue.js','Django','FastAPI','PostgreSQL','MongoDB','Firebase','AWS','Docker','GraphQL','TailwindCSS','Figma','UI/UX','Machine Learning','AI','Blockchain','Web3','Solidity','DevOps'];
+
+type PreMember = {
+  name: string;
+  experience: string;
+  skills: string[];
+  skillInput: string;
+};
 
 function CreateTeamForm() {
   const { user, profile, loading: authLoading } = useAuth();
@@ -27,6 +34,9 @@ function CreateTeamForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  // Pre-existing member details (currentMembers - 1, since leader fills their own profile)
+  const [preMembers, setPreMembers] = useState<PreMember[]>([]);
+
   useEffect(() => {
     if (!authLoading && !user) router.push('/login');
   }, [authLoading, user, router]);
@@ -42,6 +52,36 @@ function CreateTeamForm() {
     });
   }, []);
 
+  // Sync preMembers array length whenever currentMembers changes
+  useEffect(() => {
+    const extraCount = Math.max(0, currentMembers - 1); // exclude leader
+    setPreMembers(prev => {
+      if (extraCount > prev.length) {
+        // Add empty slots
+        const extras: PreMember[] = Array.from({ length: extraCount - prev.length }, () => ({
+          name: '', experience: 'beginner', skills: [], skillInput: ''
+        }));
+        return [...prev, ...extras];
+      }
+      // Trim if reduced
+      return prev.slice(0, extraCount);
+    });
+  }, [currentMembers]);
+
+  const updateMember = (idx: number, field: keyof PreMember, value: any) => {
+    setPreMembers(prev => prev.map((m, i) => i === idx ? { ...m, [field]: value } : m));
+  };
+
+  const addMemberSkill = (idx: number) => {
+    const input = preMembers[idx].skillInput.trim();
+    if (!input || preMembers[idx].skills.includes(input)) { updateMember(idx, 'skillInput', ''); return; }
+    setPreMembers(prev => prev.map((m, i) => i === idx ? { ...m, skills: [...m.skills, input], skillInput: '' } : m));
+  };
+
+  const removeMemberSkill = (idx: number, skill: string) => {
+    setPreMembers(prev => prev.map((m, i) => i === idx ? { ...m, skills: m.skills.filter(s => s !== skill) } : m));
+  };
+
   const addSkill = (s: string) => {
     const sk = s.trim();
     if (sk && !skills.includes(sk)) setSkills([...skills, sk]);
@@ -52,8 +92,24 @@ function CreateTeamForm() {
     e.preventDefault();
     if (!hackathonId) { setError('Please select a hackathon'); return; }
     if (!teamName.trim()) { setError('Team name is required'); return; }
+
+    // Validate pre-existing members have names
+    for (let i = 0; i < preMembers.length; i++) {
+      if (!preMembers[i].name.trim()) {
+        setError(`Please enter a name for Member ${i + 2}`);
+        return;
+      }
+    }
+
     setSubmitting(true);
     setError('');
+
+    const cleanedPreMembers = preMembers.map(m => ({
+      name: m.name.trim(),
+      experience: m.experience,
+      skills: m.skills,
+    }));
+
     const { data, error: err } = await supabase
       .from('teams')
       .insert({
@@ -64,6 +120,7 @@ function CreateTeamForm() {
         max_members: currentMembers + neededMembers,
         current_members: currentMembers,
         required_skills: skills,
+        pre_existing_members: cleanedPreMembers,
         created_by: user!.id,
         status: neededMembers > 0 ? 'OPEN' : 'FULL',
       })
@@ -89,17 +146,13 @@ function CreateTeamForm() {
         <div className="glass rounded-2xl p-6 sm:p-8">
           {error && <div className="mb-5 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">{error}</div>}
           <form onSubmit={handleSubmit} className="space-y-6">
+
             {/* Hackathon select */}
             <div>
               <label className="block text-sm font-medium text-[#94a3b8] mb-2">
                 <Trophy className="w-4 h-4 inline mr-1" /> Hackathon *
               </label>
-              <select
-                value={hackathonId}
-                onChange={e => setHackathonId(e.target.value)}
-                className="input-field"
-                required
-              >
+              <select value={hackathonId} onChange={e => setHackathonId(e.target.value)} className="input-field" required>
                 <option value="">Select a hackathon...</option>
                 {hackathons.map(h => (
                   <option key={h.id} value={h.id} style={{ background: '#1e1b2e' }}>
@@ -131,29 +184,19 @@ function CreateTeamForm() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-[#94a3b8] mb-2">Members already in team</label>
-                <input 
-                  type="number" 
-                  min={1} 
-                  max={10} 
-                  value={currentMembers} 
+                <input
+                  type="number" min={1} max={10} value={currentMembers}
                   onChange={e => setCurrentMembers(Number(e.target.value))}
-                  className="input-field"
-                  placeholder="e.g. 1"
-                  required
+                  className="input-field" placeholder="e.g. 1" required
                 />
                 <p className="text-[10px] text-[#64748b] mt-1">Including yourself</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-[#94a3b8] mb-2">Additional members needed</label>
-                <input 
-                  type="number" 
-                  min={0} 
-                  max={10} 
-                  value={neededMembers} 
+                <input
+                  type="number" min={0} max={10} value={neededMembers}
                   onChange={e => setNeededMembers(Number(e.target.value))}
-                  className="input-field"
-                  placeholder="e.g. 3"
-                  required
+                  className="input-field" placeholder="e.g. 3" required
                 />
                 <p className="text-[10px] text-[#64748b] mt-1">Number of spots open for applicants</p>
               </div>
@@ -166,9 +209,82 @@ function CreateTeamForm() {
               </p>
             </div>
 
+            {/* Pre-existing member details (skip leader = index 0) */}
+            {preMembers.length > 0 && (
+              <div className="space-y-5 pt-2">
+                <div className="flex items-center gap-2">
+                  <div className="h-px flex-1 bg-white/10" />
+                  <span className="text-xs font-bold text-[#64748b] uppercase tracking-widest">Current Team Members</span>
+                  <div className="h-px flex-1 bg-white/10" />
+                </div>
+                <p className="text-xs text-[#64748b] -mt-2">
+                  You (the leader) are Member 1. Fill details for the other {preMembers.length} member{preMembers.length > 1 ? 's' : ''} already on your team.
+                </p>
+
+                {preMembers.map((member, idx) => (
+                  <div key={idx} className="glass rounded-2xl p-5 border border-[#06b6d4]/20 bg-[#06b6d4]/5 space-y-4">
+                    <h3 className="text-sm font-bold text-[#22d3ee] flex items-center gap-2">
+                      <User className="w-4 h-4" /> Member {idx + 2}
+                    </h3>
+
+                    {/* Name */}
+                    <div>
+                      <label className="block text-xs font-medium text-[#94a3b8] mb-1">Full Name *</label>
+                      <input
+                        type="text"
+                        value={member.name}
+                        onChange={e => updateMember(idx, 'name', e.target.value)}
+                        className="input-field"
+                        placeholder={`Member ${idx + 2}'s name`}
+                        required
+                      />
+                    </div>
+
+                    {/* Experience */}
+                    <div>
+                      <label className="block text-xs font-medium text-[#94a3b8] mb-1">Experience Level</label>
+                      <select
+                        value={member.experience}
+                        onChange={e => updateMember(idx, 'experience', e.target.value)}
+                        className="input-field"
+                      >
+                        <option value="beginner">Beginner (1st Hackathon)</option>
+                        <option value="intermediate">Intermediate (2–3 Hackathons)</option>
+                        <option value="advanced">Advanced (4+ Hackathons)</option>
+                        <option value="expert">Expert (Serial Winner)</option>
+                      </select>
+                    </div>
+
+                    {/* Skills */}
+                    <div>
+                      <label className="block text-xs font-medium text-[#94a3b8] mb-1">Their Skills (Press Enter to add)</label>
+                      <div className="glass rounded-xl p-2 border border-white/5 focus-within:border-[#06b6d4]/50 transition-all">
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {member.skills.map(s => (
+                            <span key={s} className="bg-[#06b6d4]/20 text-[#22d3ee] px-3 py-0.5 rounded-full text-xs flex items-center gap-1 border border-[#06b6d4]/30">
+                              {s}
+                              <button type="button" onClick={() => removeMemberSkill(idx, s)} className="hover:text-white">&times;</button>
+                            </span>
+                          ))}
+                        </div>
+                        <input
+                          type="text"
+                          value={member.skillInput}
+                          onChange={e => updateMember(idx, 'skillInput', e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addMemberSkill(idx); } }}
+                          className="w-full bg-transparent outline-none text-white px-2 py-1 text-sm"
+                          placeholder="e.g. React, Python..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Required Skills */}
             <div>
-              <label className="block text-sm font-medium text-[#94a3b8] mb-2">Required Skills</label>
+              <label className="block text-sm font-medium text-[#94a3b8] mb-2">Required Skills (for new applicants)</label>
               <div className="flex flex-wrap gap-2 mb-3">
                 {skills.map(s => (
                   <span key={s} className="badge badge-primary flex items-center gap-1">
