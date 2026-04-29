@@ -361,7 +361,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Team Details */}
         <div className="lg:col-span-2 space-y-8">
-          <div className="glass rounded-3xl p-8 border border-white/10 shadow-2xl overflow-hidden relative">
+          <div className="glass rounded-3xl p-5 sm:p-8 border border-white/10 shadow-2xl overflow-hidden relative">
             <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
               <Shield className="w-32 h-32" />
             </div>
@@ -379,25 +379,31 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
 
             {/* Team Name */}
             {editingName && (isLeader || profile?.is_admin) ? (
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-4">
                 <input
                   autoFocus
                   value={editedName}
                   onChange={e => setEditedName(e.target.value)}
-                  className="text-3xl sm:text-4xl font-black bg-white/5 border border-[#7c3aed]/40 rounded-xl px-4 py-2 text-white outline-none flex-1"
+                  className="text-xl sm:text-3xl font-black bg-white/5 border border-[#7c3aed]/40 rounded-xl px-4 py-2 text-white outline-none flex-1 min-w-0"
                 />
-                <button onClick={() => saveTeamEdits('team_name')} className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors"><Check className="w-5 h-5" /></button>
-                <button onClick={() => setEditingName(false)} className="p-2 rounded-xl bg-white/5 text-[#94a3b8] hover:bg-white/10 transition-colors"><XIcon className="w-5 h-5" /></button>
+                <div className="flex gap-2 shrink-0">
+                  <button onClick={() => saveTeamEdits('team_name')} className="flex-1 sm:flex-none p-2 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors flex items-center justify-center gap-1 text-sm font-bold">
+                    <Check className="w-4 h-4" /> Save
+                  </button>
+                  <button onClick={() => setEditingName(false)} className="flex-1 sm:flex-none p-2 rounded-xl bg-white/5 text-[#94a3b8] hover:bg-white/10 transition-colors flex items-center justify-center gap-1 text-sm">
+                    <XIcon className="w-4 h-4" /> Cancel
+                  </button>
+                </div>
               </div>
             ) : (
-              <div className="flex items-start gap-3 mb-4 group/name">
-                <h1 className="text-4xl sm:text-5xl font-black text-white leading-tight">
+              <div className="flex items-start gap-2 mb-4 group/name">
+                <h1 className="text-2xl sm:text-4xl font-black text-white leading-tight break-words min-w-0 flex-1">
                   {team.team_name}
                 </h1>
                 {(isLeader || profile?.is_admin) && (
                   <button
                     onClick={() => { setEditedName(team.team_name); setEditingName(true); }}
-                    className="mt-2 p-1.5 rounded-lg bg-white/5 text-[#64748b] hover:text-white hover:bg-white/10 transition-all opacity-0 group-hover/name:opacity-100"
+                    className="mt-1 p-1.5 rounded-lg bg-white/5 text-[#64748b] hover:text-white hover:bg-white/10 transition-all shrink-0 opacity-0 group-hover/name:opacity-100"
                   >
                     <Pencil className="w-4 h-4" />
                   </button>
@@ -407,7 +413,7 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
 
             {/* Hackathon */}
             {editingHackathon && (isLeader || profile?.is_admin) ? (
-              <div className="flex items-center gap-2 mb-8">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-8">
                 <select
                   value={editedHackathonId}
                   onChange={e => setEditedHackathonId(e.target.value)}
@@ -417,8 +423,14 @@ export default function TeamDetailsPage({ params }: { params: Promise<{ id: stri
                     <option key={h.id} value={h.id} style={{ background: '#1e1b2e' }}>{h.title}</option>
                   ))}
                 </select>
-                <button onClick={() => saveTeamEdits('hackathon_id')} className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors"><Check className="w-5 h-5" /></button>
-                <button onClick={() => setEditingHackathon(false)} className="p-2 rounded-xl bg-white/5 text-[#94a3b8] hover:bg-white/10 transition-colors"><XIcon className="w-5 h-5" /></button>
+                <div className="flex gap-2 shrink-0">
+                  <button onClick={() => saveTeamEdits('hackathon_id')} className="flex-1 sm:flex-none p-2 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors flex items-center justify-center gap-1 text-sm font-bold">
+                    <Check className="w-4 h-4" /> Save
+                  </button>
+                  <button onClick={() => setEditingHackathon(false)} className="flex-1 sm:flex-none p-2 rounded-xl bg-white/5 text-[#94a3b8] hover:bg-white/10 transition-colors flex items-center justify-center gap-1 text-sm">
+                    <XIcon className="w-4 h-4" /> Cancel
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="flex items-center gap-2 mb-8 group/hack">
